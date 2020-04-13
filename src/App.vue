@@ -1,0 +1,131 @@
+<template>
+  <div id="app">
+    <b-navbar type="dark" variant="info">
+      <b-navbar-brand href="#">Coup</b-navbar-brand>
+
+      <b-collapse id="nav-collapse" is-nav>
+        <b-navbar-nav v-if="signedin && !inRoom" >
+          <b-form-input size="sm" class="mr-sm-2" v-model="search" 
+            v-on:input="changeSearch" placeholder="Search Room..."></b-form-input>
+        </b-navbar-nav>
+
+        <!-- Right aligned nav items -->
+        <b-navbar-nav class="ml-auto" v-if="signedin" >
+          <b-button v-if="!inRoom" v-b-modal.my-modal>Create a Room</b-button>
+          <b-nav-item v-if="!inGame" href="#" @click="signOut">Sign Out</b-nav-item>
+        </b-navbar-nav>
+      </b-collapse>
+    </b-navbar>
+
+    <b-modal id="my-modal" title="Create a Room" @ok="createRoom">
+      <input type="text"
+        v-model="roomName"
+        placeholder="Enter a room name"
+        />
+    </b-modal>
+
+    <div class="home" v-if="signedin && !inRoom">
+      <div class="big">
+        <GamesList/>
+      </div>
+      <div class="small">
+        <FriendsList/>
+      </div>
+    </div>
+    <SignUpIn v-if="!signedin"/>
+    <WaitRoomView v-show="signedin && inRoom"
+      v-bind:username="username"/>
+  </div>
+</template>
+<script>
+import axios from "axios";
+import { eventBus, socket } from "./main";
+import SignUpIn from './components/SignUpIn.vue';
+import FriendsList from './components/FriendsList.vue';
+import GamesList from './components/GamesList.vue';
+import WaitRoomView from './components/WaitRoomView.vue';
+
+export default {
+  name: 'app',
+  components: {
+    SignUpIn, FriendsList, GamesList, WaitRoomView
+  },
+  data() {
+    return { 
+      username: null,
+      roomName: "",
+      search: "",
+      roomID: null,
+      inRoom: false,
+      inGame: false
+    };
+  },
+  computed: {
+    signedin: function(){
+      return this.username !== null;
+    }
+  },
+  methods: {
+    signOut: function(){
+      axios.delete('/api/room/players/'+this.roomID, {})
+      .then(() => {
+        eventBus.$emit('leave-room');
+        axios.delete('/api/user/signout', {})
+        .then(() => {
+          this.clearUser();
+        });
+      })
+    },
+    clearUser: function(){
+      this.username = null;
+    },
+    createRoom: function(){
+      axios.post('/api/room', {content: this.roomName})
+    .then((res) => {
+      // eslint-disable-next-line no-console
+            console.log(res.data);
+            eventBus.$emit("joined-room",res.data);
+            eventBus.$emit("room-added");
+            socket.emit('create');
+            this.roomName = "";
+      })
+    },
+    changeSearch: function(){
+      eventBus.$emit("search",this.search);
+    }
+  },
+  created: function() {
+    axios.get('/api/user/signedin', {})
+        .then((res)=>{
+          eventBus.$emit("signin-success", res.data);
+    });
+
+    eventBus.$on("joined-room", (req) => {
+      this.roomID = req.id;
+      this.inRoom = true;
+      eventBus.$emit("add-message", {"message": this.username + " joined the room.", "roomID": this.roomID});
+    });
+
+    eventBus.$on("left-room", () => {
+      this.inRoom = false;
+    });
+
+    eventBus.$on("signin-success", (res) => {
+      this.username = res;
+    });
+  }
+}
+</script>
+
+<style scoped>
+.home{
+  display:flex;
+  flex-direction:row;
+}
+.small{
+  flex-grow: 1;
+}
+.big{
+  flex-grow: 3;
+}
+</style>
