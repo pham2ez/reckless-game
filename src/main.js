@@ -4,7 +4,7 @@ import { BootstrapVue } from 'bootstrap-vue'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 import io from 'socket.io-client';
-export const socket = io('http://localhost:3000');
+export const socket = io('https://tuyet-coup.herokuapp.com/');
 
 // Install BootstrapVue
 Vue.use(BootstrapVue);
