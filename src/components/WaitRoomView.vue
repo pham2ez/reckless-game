@@ -83,7 +83,8 @@ export default {
       this.clear();
     });
     socket.on("winner",(data)=>{
-      this.winnerSound();
+      var audio = new Audio(require('./media/omg1.mp3'));
+      audio.play();
       this.winner = data;
     });
     eventBus.$on("joined-room", (res) => {
@@ -117,7 +118,8 @@ export default {
           }
         }
         socket.emit("winner",{"roomID": this.roomID, "winner": this.winner});
-        this.winnerSound();
+        var audio = new Audio(require('./media/omg1.mp3'))
+        audio.play();
         eventBus.$emit("add-message", {"message": this.winner + " won the game!", "roomID": this.roomID});
       }
     });
@@ -135,15 +137,6 @@ export default {
     });
   },
   methods: {
-    winnerSound: function(){
-      let audio;
-      if(Math.random() <= .5){
-        audio = new Audio(require('./media/omg1.mp3'))
-      }else{
-        audio = new Audio(require('./media/omg2.mp3'))
-      }
-      audio.play();
-    },
     clear: function(){
       this.dead= false;
       this.deadPlayers= [];

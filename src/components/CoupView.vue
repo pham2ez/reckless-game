@@ -135,16 +135,19 @@ export default {
         });
 
     socket.on("action", (data) => {
-      var audio = new Audio(require('./media/approachingMe.mp3'))
-      audio.play();
+      var audio;
       this.currentAction = data;
       this.title = this.currentAction.fromPlayer + "'s " + this.dict[this.currentAction.action];
       if(data.toPlayer === this.username && !data.blockable && !data.challengable){
         this.chosenAction = "COUP";
         this.numKill = 1;
         this.showKill = true; // for coup
+        audio = new Audio(require('./media/omg2.mp3'))
+        audio.play();
       }
       if(data.toPlayer === this.username || this.currentAction.action === "FA"){
+        audio = new Audio(require('./media/approachingMe.mp3'))
+        audio.play();
         if(this.currentAction.action === "FA"){
           this.chosenAction = "FA";
         }
@@ -213,6 +216,7 @@ export default {
         socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "blockedAction": this.currentAction.action,
         "blockable": false, "challengable": true,
         "fromPlayer": this.username, "toPlayer": this.currentAction.fromPlayer});
+        this.chosenAction = null;
       }else if(req === "N" || req === "T"){
         this.showChoose = true;
       }else{
