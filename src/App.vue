@@ -86,7 +86,7 @@ export default {
             console.log(res.data);
             eventBus.$emit("joined-room",res.data);
             eventBus.$emit("room-added");
-            socket.emit('create');
+            socket.emit('create',res.data);
             this.roomName = "";
       })
     },

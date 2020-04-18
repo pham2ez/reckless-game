@@ -13,7 +13,8 @@ module.exports = function (io) {
   io.on('connection', function (socket) {
       console.log('User has connected to Index');
       //ON Events
-      socket.on('create', function () {
+      socket.on('create', function (data) {
+        socket.join(data.id);
         socket.broadcast.emit('create');
       });
 
@@ -47,7 +48,7 @@ module.exports = function (io) {
         socket.to(data.roomID).emit('message',data);
       });
 
-      socket.on('block', function () { // notify everyone someone blocked
+      socket.on('block', function (data) { // notify everyone someone blocked
         socket.to(data.roomID).emit('block');
       });
 
