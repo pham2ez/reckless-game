@@ -41,7 +41,7 @@ module.exports = function (io) {
       });
 
       socket.on('winner', function (data) { // data contains message to show up
-        socket.to(data.roomID).emit('winner',data);
+        io.in(data.roomID).emit('winner',data);
       });
 
       socket.on('message', function (data) { // data contains message to show up
@@ -69,7 +69,7 @@ module.exports = function (io) {
       });
 
       socket.on('ok', function (data) { // notify everyone of next player
-        socket.to(data.roomID).emit('ok', data);
+        io.in(data.roomID).emit('ok', data);
       });
       //End ON Events
   });

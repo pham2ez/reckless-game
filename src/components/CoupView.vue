@@ -151,9 +151,9 @@ export default {
         if(this.currentAction.action === "FA"){
           this.chosenAction = "FA";
         }
-        this.showBlock = data.blockable;
+        this.showBlock = data.blockable && !this.gameInfo.deadPlayers.includes(this.username);
       }
-      this.showChallenge = data.challengable;
+      this.showChallenge = data.challengable && !this.gameInfo.deadPlayers.includes(this.username);
       });
 
     socket.on("challenge",(req)=>{
@@ -198,7 +198,8 @@ export default {
     socket.on("ok",(req)=>{
       if(this.username === req.player){
         this.oks++;
-        if(this.oks === this.players.length-1){
+        if(this.oks === (this.players.length-1 - this.gameInfo.deadPlayers.length)){
+          eventBus.$emit("add-message", {"message": "Action successfully went through", "roomID": this.roomID});
           this.finish();
         }
       }
@@ -240,7 +241,6 @@ export default {
       this.blockingPlayer = false;
 
       this.clearModal();
-      this.showChallenge = false;
       this.showKill = false;
       this.oks = 0;
       this.numKill = 0;
@@ -301,7 +301,7 @@ export default {
     },
     handleOk: function(){
       if(this.currentAction.blockedAction === undefined){ // allow move
-      eventBus.$emit("add-message", {"message": "Action successfully went through", "roomID": this.roomID});
+      eventBus.$emit("add-message", {"message": this.username + " did nothing", "roomID": this.roomID});
       this.clearModal();
         if(this.currentAction.action === "N"){
           this.chosenAction = "N";
@@ -342,6 +342,16 @@ export default {
       .then(() => {
         this.clear();
         socket.emit("getInfo", {"roomID": this.roomID});
+        if(req.deadPlayers.length === this.players.length-1){
+        for(let i of this.players){
+          if(!this.deadPlayers.includes(i)){
+            this.winner = i;
+            break;
+          }
+        }
+        socket.emit("winner",{"roomID": this.roomID, "winner": this.winner});
+        eventBus.$emit("add-message", {"message": this.winner + " won the game!", "roomID": this.roomID});
+      }
       });
     },
     kill: function(index){

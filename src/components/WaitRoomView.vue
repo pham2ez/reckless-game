@@ -110,18 +110,6 @@ export default {
       this.coinDict = req.coinDict;
       this.playerIndex = req.playerIndex;
       this.inGame = true;
-      if(req.deadPlayers.length === this.players.length-1){
-        for(let i of this.players){
-          if(!this.deadPlayers.includes(i)){
-            this.winner = i;
-            break;
-          }
-        }
-        socket.emit("winner",{"roomID": this.roomID, "winner": this.winner});
-        var audio = new Audio(require('./media/omg1.mp3'))
-        audio.play();
-        eventBus.$emit("add-message", {"message": this.winner + " won the game!", "roomID": this.roomID});
-      }
     });
 
     socket.on("ok",(data)=>{
