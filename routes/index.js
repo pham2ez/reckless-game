@@ -13,23 +13,36 @@ module.exports = function (io) {
   io.on('connection', function (socket) {
       console.log('User has connected to Index');
       //ON Events
-      socket.on('create', function (data) {
+      socket.on('loggedIn', function () { // updates everyone's game list
+        socket.join("WaitingRoom");
+      });
+
+      socket.on('loggedOut', function () { // updates everyone's game list
+        socket.leave("WaitingRoom");
+      });
+
+      socket.on('create', function (data) { // updates everyone's game list
         socket.join(data.id);
-        socket.broadcast.emit('create');
+        socket.leave("WaitingRoom");
+        io.in("WaitingRoom").emit('create');
       });
 
       socket.on('join', function (data) { // data contains room info
-        socket.join(data.roomID);
         socket.to(data.roomID).emit('join',data);
+        socket.join(data.roomID);
+        socket.leave("WaitingRoom");
+        io.in("WaitingRoom").emit('create');
       });
 
       socket.on('leave', function (data) { // data contains room info
-        socket.leave(data.ID);
-        socket.to(data.roomID).emit('leave',data);
+        socket.leave(data.id);
+        socket.to(data.id).emit('leave',data);
+        socket.join("WaitingRoom");
+        io.in("WaitingRoom").emit('create');
       });
 
       socket.on('loading', function (data) { // data contains room info
-        socket.to(data.roomID).emit('loading',data);
+        socket.to(data.roomID).emit('loading');
       });
 
       socket.on('started', function (data) { // data contains message to show up
@@ -49,7 +62,7 @@ module.exports = function (io) {
       });
 
       socket.on('block', function (data) { // notify everyone someone blocked
-        socket.to(data.roomID).emit('block');
+        io.in(data.roomID).emit('block', data);
       });
 
       socket.on('challenge', function (data) { // notify everyone someone bsed

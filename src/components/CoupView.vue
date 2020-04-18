@@ -19,7 +19,7 @@
       <Card v-bind:role="'D'"
         v-bind:available="chosenAction === null || (chosenAction === 'FA')"/>
       <Card v-bind:role="'N'"
-        v-bind:available="chosenAction === null && gameInfo.coinDict[username] >= 3"/>
+        v-bind:available="chosenAction === null && myCoins >= 3"/>
       <Card v-bind:role="'A1'"
         v-bind:available="chosenAction === null || chosenAction === 'T'"/>
       <Card v-bind:role="'T'"
@@ -29,7 +29,7 @@
     </div>
     <div class="modals">
       <!-- The modals -->
-        <b-modal :visible="showChoose" no-close-on-esc no-close-on-backdrop hide-footer hide-header>
+        <b-modal :title="'Choose a player to use ' + dict[chosenAction] + ' on'" :visible="showChoose" no-close-on-esc no-close-on-backdrop hide-footer hide-header-close>
           <div class="actions">
             <b-button v-for="player in players"
               v-bind:key="player"
@@ -38,15 +38,15 @@
           </div>
         </b-modal>
 
-        <b-modal :title="title" v-if="currentAction !== null" :visible="show" no-close-on-esc no-close-on-backdrop hide-footer hide-header>
+        <b-modal :title="title" :visible="show" no-close-on-esc no-close-on-backdrop hide-footer hide-header-close>
           <div class="actions">
-            <b-button v-if="currentAction.blockable" @click="block">Block</b-button>
-            <b-button v-if="currentAction.challengable" @click="challenge">Challenge</b-button>
+            <b-button v-if="showBlock" @click="block">Block</b-button>
+            <b-button v-if="showChallenge" @click="challenge">Challenge</b-button>
             <b-button @click="handleOk">Do Nothing</b-button>
           </div>
         </b-modal>
         
-        <b-modal v-if="gameInfo !== null" :visible="showKill" no-close-on-esc no-close-on-backdrop hide-header hide-footer>
+        <b-modal :title="'Choose ' + numKill + ' card(s) to die'" v-if="gameInfo !== null" :visible="showKill" no-close-on-esc no-close-on-backdrop hide-header-close hide-footer>
           <div class="actions">
             <b-button v-for="i in gameInfo.myCards.length"
               variant="danger"
@@ -94,10 +94,11 @@ export default {
       numKill: 0,
       inKill: [false,false,false,false],
 
-      dict: {"A1":"Ambassador", "C":"Contessa", "T":"Captain", "D":"Duke", "N":"Assassin"},
+      dict: {"A1":"Ambassador", "C":"Contessa", "T":"Captain", "D":"Duke", "N":"Assassin", "COUP": "coup", "FA": "foreign aid"},
       gameInfo: null,
       deadCardsArray: [],
-      myCardsArray: []
+      myCardsArray: [],
+      myCoins: 0
     }
   },
   created: function(){
@@ -111,11 +112,11 @@ export default {
         this.deadCardsPopu();
         this.myCardsPopu();
         this.currentPlayer = this.username===this.players[res.data.playerIndex];
-        let myCoins = this.gameInfo.coinDict[this.username];
-      if(myCoins < 7){
+        this.myCoins = this.gameInfo.coinDict[this.username];
+      if(this.myCoins < 7){
         this.available = false;
         this.coup = false;
-      }else if(myCoins >= 10){
+      }else if(this.myCoins >= 10){
         this.available = true;
         this.coup = true;
       }else{
@@ -138,6 +139,7 @@ export default {
       var audio;
       this.currentAction = data;
       this.title = this.currentAction.fromPlayer + "'s " + this.dict[this.currentAction.action];
+      this.title += data.toPlayer !== undefined? " to " + data.toPlayer: "";
       if(data.toPlayer === this.username && !data.blockable && !data.challengable){
         this.chosenAction = "COUP";
         this.numKill = 1;
@@ -291,6 +293,7 @@ export default {
       this.blockingPlayer = true;
       this.chosenAction = this.currentAction.action;
       socket.emit("block",{"roomID": this.roomID, "player": this.username});
+      eventBus.$emit("add-message", {"message": this.winner + " is blocking", "roomID": this.roomID});
     },
     challenge: function(){
       this.clearModal();
@@ -303,7 +306,8 @@ export default {
       if(this.currentAction.blockedAction === undefined){ // allow move
       eventBus.$emit("add-message", {"message": this.username + " did nothing", "roomID": this.roomID});
       this.clearModal();
-        if(this.currentAction.action === "N"){
+        if(this.currentAction.action === "N" && this.username === this.currentAction.toPlayer){ // if oked assassin on theirself
+          socket.emit("block",{"roomID": this.roomID})
           this.chosenAction = "N";
           this.numKill = 1;
           this.showKill = true; // for assassin
@@ -313,8 +317,8 @@ export default {
           socket.emit("ok", {"roomID": this.roomID, "player": this.currentAction.fromPlayer, "okPlayer": this.username});
         }
       }else{ // allow block
-      eventBus.$emit("add-message", {"message": "Action was successfully blocked", "roomID": this.roomID});
-        if(this.chosenAction === "N"){
+        eventBus.$emit("add-message", {"message": "Action was successfully blocked", "roomID": this.roomID});
+        if(this.chosenAction === "N"){ // wasted 3 coins to try to assassin
           this.finish();
         }else{
           axios.get('/api/coup/next/'+this.roomID)
@@ -327,31 +331,30 @@ export default {
     handleKill: function(){
       this.showKill = false;
       let chosenCards = [];
-      let str = this.username + " chose to kill ";
-      for(let i = 0; i < this.inKill.length; i++){
-        if(this.inKill[i]){
-          chosenCards.push(this.gameInfo.myCards[i]);
-          str += this.dict[this.gameInfo.myCards[i]] + " "
+      if(this.chosenAction === "A2"){
+        eventBus.$emit("add-message", {"message": this.username + " put 2 cards back into the deck", "roomID": this.roomID});
+      }else{
+        let str = this.username + " chose to kill ";
+        for(let i = 0; i < this.inKill.length; i++){
+          if(this.inKill[i]){
+            chosenCards.push(this.gameInfo.myCards[i]);
+            str += this.dict[this.gameInfo.myCards[i]] + " "
+          }
         }
+        eventBus.$emit("add-message", {"message": str + "to die", "roomID": this.roomID});
       }
-      eventBus.$emit("add-message", {"message": str + "to die", "roomID": this.roomID});
       this.body = {"id": this.roomID, "player1": this.currentAction.fromPlayer,
         "player2": this.username,
         "action": this.chosenAction, "cards": chosenCards}
       axios.put('/api/coup/move', this.body)
-      .then(() => {
+      .then((req) => {
         this.clear();
-        socket.emit("getInfo", {"roomID": this.roomID});
-        if(req.deadPlayers.length === this.players.length-1){
-        for(let i of this.players){
-          if(!this.deadPlayers.includes(i)){
-            this.winner = i;
-            break;
-          }
+        if(req.data !== false){
+          socket.emit("winner",{"roomID": this.roomID, "winner": req.data});
+          eventBus.$emit("add-message", {"message": req.data + " won the game!", "roomID": this.roomID});
+        }else{
+          socket.emit("getInfo", {"roomID": this.roomID});
         }
-        socket.emit("winner",{"roomID": this.roomID, "winner": this.winner});
-        eventBus.$emit("add-message", {"message": this.winner + " won the game!", "roomID": this.roomID});
-      }
       });
     },
     kill: function(index){

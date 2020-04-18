@@ -25,8 +25,7 @@ router.get('/next/:id', (req, res) => {
  * @name PUT/api/coup/move
  */
 router.put('/move', (req, res) => {
-  Coup.doMove(req.body.id, req.body.player1, req.body.player2, req.body.action, req.body.cards);
-  res.status(200).json(true).end();
+  res.status(200).json(Coup.doMove(req.body.id, req.body.player1, req.body.player2, req.body.action, req.body.cards)).end();
 });
 
 module.exports = router;

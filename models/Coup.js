@@ -148,11 +148,17 @@ class Coup {
       game.courtList.push(kill[0]);
       this.shuffleDeck(game.courtList);
     }
+    if(game.deadPlayers.length === game.players.length - 1){
+      let winner = game.players.filter(player => !game.deadPlayers.includes(player))[0];
+      let index = game.players.indexOf(winner);
+      return game.players[index];
+    }
     if(action !== "A1" && action != "BS1"){
       do{
         game.playerIndex = (game.playerIndex + 1) % game.players.length;
       }while(game.deadPlayers.includes(game.players[game.playerIndex]))
     }
+    return false;
   }
 
   // PLAYER ACTIONS

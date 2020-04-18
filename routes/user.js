@@ -36,7 +36,12 @@ router.post('/', (req, res) => {
  * @throws {404} - if user does not exist
  */
 router.get('/friends/', (req, res) => {
-  res.status(200).json(Users.findUser(req.session.username).friends).end();
+  let user = Users.findUser(req.session.username);
+  if(user !== undefined){
+    res.status(200).json(user.friends).end();
+  }else{
+    res.status(200).json([]).end();
+  }
 });
 
 

@@ -17,16 +17,14 @@ import { eventBus, socket } from "../main";
 
 export default {
   name: 'Messages',
-  props: ["roomID"],
   data() {
     return {
       messages: ""
     }
   },
   created: function(){
-    this.messages = "Welcome to room " + this.roomID;
     eventBus.$on("add-message",(req)=>{
-      this.messages += "\n- " + req.message;
+      this.messages += "- " + req.message + "\n";
       document.getElementById('textarea').scrollTop = document.getElementById('textarea').scrollHeight;
       socket.emit("message", req);
     });
@@ -36,7 +34,7 @@ export default {
     });
 
     socket.on("message",data => {
-      this.messages += "\n- " + data.message;
+      this.messages += "- " + data.message + "\n";
       this.$nextTick(function () {
         document.getElementById('textarea').scrollTop = document.getElementById('textarea').scrollHeight;
       })

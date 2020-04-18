@@ -67,14 +67,16 @@ export default {
   },
   methods: {
     signOut: function(){
-      axios.delete('/api/room/players/'+this.roomID, {})
-      .then(() => {
-        eventBus.$emit('leave-room');
+      if(this.roomID !== null){
+      let username = this.username;
+        eventBus.$emit("leave-room",username);
+      }
         axios.delete('/api/user/signout', {})
         .then(() => {
           this.clearUser();
         });
-      })
+
+      socket.emit("loggedOut");
     },
     clearUser: function(){
       this.username = null;
@@ -82,8 +84,6 @@ export default {
     createRoom: function(){
       axios.post('/api/room', {content: this.roomName})
     .then((res) => {
-      // eslint-disable-next-line no-console
-            console.log(res.data);
             eventBus.$emit("joined-room",res.data);
             eventBus.$emit("room-added");
             socket.emit('create',res.data);
@@ -108,10 +108,12 @@ export default {
 
     eventBus.$on("left-room", () => {
       this.inRoom = false;
+      this.roomID = null;
     });
 
     eventBus.$on("signin-success", (res) => {
       this.username = res;
+      socket.emit("loggedIn");
     });
   }
 }

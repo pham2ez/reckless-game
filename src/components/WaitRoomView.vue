@@ -12,6 +12,9 @@
         <b-card-text>
           {{playerText(players[i-1])}}
         </b-card-text>
+        <b-card-text v-if="blocking === players[i-1]">
+          Player is blocking.
+        </b-card-text>
         <b-card-text v-if="okedPlayers.includes(players[i-1])">
           Player did nothing.
         </b-card-text>
@@ -30,7 +33,7 @@
     </div>
 
       <div class="columns">
-        <Messages v-if="roomID !== ''" v-bind:roomID="roomID"/>
+        <Messages/>
         <CoupView 
         v-show="inGame && !dead"
         v-bind:username="username"
@@ -66,6 +69,7 @@ export default {
       playerIndex: 0,
       inGame: false,
       winner: "",
+      blocking: "",
       
       loading: false,
       dict: {"A1":"Ambassador", "C":"Contessa", "T":"Captain", "D":"Duke", "N":"Assassin"}
@@ -93,12 +97,9 @@ export default {
       this.roomID = res.id;
       this.roomName = res.roomName;
     });
-    eventBus.$on("leave-room", () => {
-      this.leave();
-    });
 
-    eventBus.$on("leave-room", () => {
-      this.leave();
+    eventBus.$on("leave-room", (username) => {
+      this.leave(username);
     });
 
     eventBus.$on("game-info", (req) => {
@@ -114,6 +115,10 @@ export default {
 
     socket.on("ok",(data)=>{
       this.okedPlayers.push(data.okPlayer);
+    })
+
+    socket.on("block",(data)=>{
+      this.block = data.player;
     })
     
     socket.on("started", () => {
@@ -162,10 +167,11 @@ export default {
         return index===this.playerIndex? 'white':'';
       }
     },
-    leave: function(){
+    leave: function(username){
       axios.delete('/api/room/players/'+this.roomID, {})
       .then((res) => {
-        eventBus.$emit("add-message", {"message": this.username + " left the room.", "roomID": this.roomID});
+        let user = this.username !== null? this.username: username;
+        eventBus.$emit("add-message", {"message": user + " left the room.", "roomID": this.roomID});
         socket.emit("leave",res.data);
         eventBus.$emit('left-room');
       })
