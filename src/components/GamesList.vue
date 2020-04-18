@@ -30,6 +30,10 @@ export default {
       this.getRooms();
     });
 
+    socket.on('join', () => {
+      this.getRooms();
+    });
+
     socket.on('leave', () => {
       this.getRooms();
     });

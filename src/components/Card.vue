@@ -8,8 +8,8 @@
     @click="choose"
     @mouseover="onHover"
     @mouseout="onLeave">
-    <b-card-text>
-      {{info}}
+    <b-card-text v-for="text in textArray" v-bind:key="text">
+      {{text}}
     </b-card-text>
   </b-card>
 </template>
@@ -18,17 +18,27 @@
 // import axios from "axios";
 import { eventBus } from "../main";
 
-// import image from "./media/Assassin.png";
-
 export default {
   name: 'CoupView',
   props: ["role", "available"],
   data() {
     return {
-      hover: false
+      hover: false,
+      textArray: []
     }
   },
   created: function(){
+    if(this.role === "A1"){
+        this.textArray = ["Exchange cards with Court Deck.","Blocks stealing."];
+      }else if(this.role === "C"){
+        this.textArray = [ "Blocks assassination."];
+      }else if(this.role === "D"){
+        this.textArray = [ "Take 3 coins from Treasury.","Blocks Foreign Aid."];
+      }else if(this.role === "N"){
+        this.textArray = [ "Pay 3 coins to assassinate another player."];
+      }else if (this.role === "T"){
+        this.textArray = [ "Steal 2 coins from another player.","Blocks stealing."];
+      }
   },
   computed: {
     title: function(){
@@ -42,19 +52,6 @@ export default {
         return "Assassin";
       }else if (this.role === "T"){
         return "Captain";
-      }
-    },
-    info: function(){
-      if(this.role === "A1"){
-        return "Exchange cards with Court Deck.\nBlocks stealing.";
-      }else if(this.role === "C"){
-        return "Blocks assassination.";
-      }else if(this.role === "D"){
-        return "Take 3 coins from Treasury.\nBlocks Foreign Aid.";
-      }else if(this.role === "N"){
-        return "Pay 3 coins to assassinate another player.";
-      }else if (this.role === "T"){
-        return "Steal 2 coins from another player.\nBlocks stealing.";
       }
     },
     style: function(){

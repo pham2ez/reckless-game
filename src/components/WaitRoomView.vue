@@ -7,35 +7,32 @@
       v-for="i in players.length"
       v-bind:key="players[i-1]"
       :title="players[i-1]"
-      :bg-variant="username===players[i-1]?'info':'light'">
+      :bg-variant="bgVariant(i-1)"
+      :text-variant="textVariant(i-1)">
         <b-card-text>
           {{playerText(players[i-1])}}
         </b-card-text>
+        <b-card-text v-if="okedPlayers.includes(players[i-1])">
+          Player did nothing.
+        </b-card-text>
       </b-card>
     </div>
-    <div v-show="!inGame && !loading" class="buttons">
-      <b-button :disabled="username !== creator || players.length<2" @click="start">Start</b-button>
-      <b-button @click="leave">Leave</b-button>
+    <div v-show="!inGame && !loading" class="wait">
+      <b-button variant="info" :disabled="username !== creator || players.length<2" @click="start">Start</b-button>
+      <b-button variant="outline-dark" @click="leave">Leave</b-button>
     </div>
     <b-spinner v-show="loading" variant="primary" label="Spinning"></b-spinner>
     <div v-show="inGame">
-      <div class="info">
-        {{deadCardsText}}
-        <b-button v-show="inGame" v-b-modal="'info'">Info</b-button>
-        <!-- The modal -->
-        <b-modal id="info" size="lg" title="Coup Actions" hide-footer>
-          <b-img :src="require('./media/rules.png')" fluid-grow></b-img>
-        </b-modal>
-      </div>
       <b-modal :visible="inGame && winner !== ''" hide-header hide-footer>
-        The winner is {{winner}}.
+        The winner is {{winner.winner}}.
         <b-button v-if="creator===username" @click="end">End</b-button>
       </b-modal>
     </div>
 
       <div class="columns">
-        <Messages v-bind:roomID="roomID"/>
-        <CoupView v-if="!dead"
+        <Messages v-if="roomID !== ''" v-bind:roomID="roomID"/>
+        <CoupView 
+        v-show="inGame && !dead"
         v-bind:username="username"
         v-bind:players="players"
         v-bind:roomID="roomID"/>
@@ -62,10 +59,11 @@ export default {
       roomName:"",
 
       dead: false,
-      deadCards: {},
       deadPlayers: [],
+      okedPlayers: [],
       numCards: {},
       coinDict: {},
+      playerIndex: 0,
       inGame: false,
       winner: "",
       
@@ -75,20 +73,17 @@ export default {
   },
   created: function(){
     socket.on('join', (data) => {
-      if(data.id == this.roomID){
-        this.players = data.players;
-      }
+      this.players = data.players;
     });
     socket.on('leave', (data) => {
-      if(data.id == this.roomID){
-        this.players = data.players;
-        this.creator = data.creator;
-      }
+      this.players = data.players;
+      this.creator = data.creator;
     });
     socket.on("ended",()=>{
       this.clear();
     });
     socket.on("winner",(data)=>{
+      this.winnerSound();
       this.winner = data;
     });
     eventBus.$on("joined-room", (res) => {
@@ -107,11 +102,12 @@ export default {
 
     eventBus.$on("game-info", (req) => {
       this.loading = false;
+      this.okedPlayers = [];
       this.deadPlayers = req.deadPlayers;
       this.dead = req.deadPlayers.includes(this.username);
-      this.deadCards = req.deadCards;
       this.numCards = req.numCards;
       this.coinDict = req.coinDict;
+      this.playerIndex = req.playerIndex;
       this.inGame = true;
       if(req.deadPlayers.length === this.players.length-1){
         for(let i of this.players){
@@ -120,9 +116,15 @@ export default {
             break;
           }
         }
-        socket.emit("winner",this.winner);
+        socket.emit("winner",{"roomID": this.roomID, "winner": this.winner});
+        this.winnerSound();
+        eventBus.$emit("add-message", {"message": this.winner + " won the game!", "roomID": this.roomID});
       }
     });
+
+    socket.on("ok",(data)=>{
+      this.okedPlayers.push(data.okPlayer);
+    })
     
     socket.on("started", () => {
       this.inGame = true;
@@ -132,21 +134,18 @@ export default {
       this.loading = true;
     });
   },
-  computed: {
-    
-    deadCardsText: function(){
-      let str = "";
-      for(let key in this.deadCards){
-        str += this.dict[key] + ": " + this.deadCards[key] + "/3";
-        if(key !==  "D"){str += "\n"}
-      }
-      return str;
-    }
-  },
   methods: {
+    winnerSound: function(){
+      let audio;
+      if(Math.random() <= .5){
+        audio = new Audio(require('./media/omg1.mp3'))
+      }else{
+        audio = new Audio(require('./media/omg2.mp3'))
+      }
+      audio.play();
+    },
     clear: function(){
       this.dead= false;
-      this.deadCards= {};
       this.deadPlayers= [];
       this.numCards= {};
       this.coinDict= {};
@@ -155,11 +154,31 @@ export default {
     },
     playerText: function(player){
       if(this.inGame && !this.deadPlayers.includes(player)){
-        return "Coins: " + this.coinDict[player] + "\nCards in Hand: " + this.numCards[player];
+        return "Coins: " + this.coinDict[player] + ", Cards in Hand: " + this.numCards[player];
       }else if(this.inGame && this.deadPlayers.includes(player)){
         return "Dead";
       }else{
         return "Ready";
+      }
+    },
+    bgVariant: function(index){
+      if(!this.inGame){
+        return this.username===this.players[index]? 'secondary':'light';
+      }else{
+        if(this.deadPlayers.includes(this.players[index])){
+          return 'dark';
+        }
+        return index===this.playerIndex? 'info':'light';
+      }
+    },
+    textVariant: function(index){
+      if(!this.inGame){
+        return this.username===this.players[index]? 'white':'';
+      }else{
+        if(this.deadPlayers.includes(this.players[index])){
+          return 'white';
+        }
+        return index===this.playerIndex? 'white':'';
       }
     },
     leave: function(){
@@ -172,19 +191,20 @@ export default {
     },
     start: function(){
       this.loading = true;
-      socket.emit("loading");
+      socket.emit("loading", {"roomID":this.roomID});
       eventBus.$emit("add-message", {"message": "Game started", "roomID": this.roomID});
       axios.put('/api/room/start/'+this.roomID, {})
       .then(() => {
-        socket.emit("getInfo");
+        socket.emit("getInfo", {"roomID": this.roomID});
       });
     },
     end: function(){
       axios.put('/api/room/end/'+this.roomID, {})
       .then(() => {
         this.clear();
+        eventBus.$emit("add-message", {"message": "Game ended", "roomID": this.roomID});
         eventBus.$emit("ended");
-        socket.emit("ended");
+        socket.emit("ended", {"roomID": this.roomID});
       });
     }
   }

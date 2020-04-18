@@ -21,8 +21,9 @@ class Coup {
     // look to see if pre-existing game
     let game = this.findGame(ID);
     if(game !== undefined){
-      let winner = game.deadPlayers.filter(player => !game.players.includes(player))[0];
-      game.playerIndex = game.players.indexOf(winner);
+      let winner = game.players.filter(player => !game.deadPlayers.includes(player))[0];
+      let index = game.players.indexOf(winner);
+      game.playerIndex = index === -1? 0: index;
       game.players = players; // in case someone leaves/someone new comes
       game.coinDict = coinDict;
       game.courtList = courtList;
@@ -101,7 +102,9 @@ class Coup {
   // ADMIN ACTIONS
   static next(ID){
     let game = this.findGame(ID);
-    game.playerIndex = (game.playerIndex + 1) % game.players.length;
+    do{
+      game.playerIndex = (game.playerIndex + 1) % game.players.length;
+    }while(game.deadPlayers.includes(game.players[game.playerIndex]))
   }
 
   // GAME ACTIONS
@@ -109,6 +112,8 @@ class Coup {
   // do after we check if other player wants to block or wants to bs this player
   static doMove(ID, player1, player2, action, kill){
     let game = this.findGame(ID);
+    if(player1 in game.deadPlayers)
+      return;
     if(action === "IN"){
       this.addCoins(game,player1,1);
     }else if(action === "FA"){
@@ -144,7 +149,9 @@ class Coup {
       this.shuffleDeck(game.courtList);
     }
     if(action !== "A1" && action != "BS1"){
-      game.playerIndex = (game.playerIndex + 1) % game.players.length;
+      do{
+        game.playerIndex = (game.playerIndex + 1) % game.players.length;
+      }while(game.deadPlayers.includes(game.players[game.playerIndex]))
     }
   }
 
@@ -159,20 +166,13 @@ class Coup {
   }
 
   static killAction(game, player, deadCard){ // true if player is dead
-    this.popCardOutHand(game, player, deadCard);
-    game.deadCards[deadCard]++;
-    if(game.playersCards[player].length == 0){
-      game.deadPlayers.push(player);
-      if(game.deadPlayers.length === game.players.length - 1){
-        for(let i = 0; i < game.players.length; i++){
-          if(!game.deadPlayers.includes(game.players[i])){
-            game.playerIndex = i;
-          }
-        }
-        return true; // stop game
+    if(deadCard !== undefined){
+      this.popCardOutHand(game, player, deadCard);
+      game.deadCards[deadCard]++;
+      if(game.playersCards[player].length == 0){
+        game.deadPlayers.push(player);
       }
     }
-    return false; // continue game
   }
 }
 

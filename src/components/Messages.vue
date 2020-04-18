@@ -24,6 +24,7 @@ export default {
     }
   },
   created: function(){
+    this.messages = "Welcome to room " + this.roomID;
     eventBus.$on("add-message",(req)=>{
       this.messages += "\n- " + req.message;
       document.getElementById('textarea').scrollTop = document.getElementById('textarea').scrollHeight;
@@ -35,13 +36,10 @@ export default {
     });
 
     socket.on("message",data => {
-      if(this.roomID === data.roomID){
       this.messages += "\n- " + data.message;
       this.$nextTick(function () {
         document.getElementById('textarea').scrollTop = document.getElementById('textarea').scrollHeight;
       })
-      }
-      
     });
   }
 }
@@ -51,6 +49,6 @@ export default {
 
 .messageBox{
   display: flex;
-  flex-grow: 1;
+  width: 30%;
 }
 </style>

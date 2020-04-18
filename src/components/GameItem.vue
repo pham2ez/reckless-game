@@ -31,7 +31,7 @@ export default {
       
       axios.put('/api/room/players/'+this.roomID, {})
       .then((res) => {
-        socket.emit("join",{"id":this.roomID, "players":res.data.players});
+        socket.emit("join",{"roomID":this.roomID, "players":res.data.players});
         eventBus.$emit('joined-room', res.data);
       })
     },
