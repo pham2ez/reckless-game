@@ -15,13 +15,21 @@ let data = [];
  */
 class Users {
   static addUser(username, password) {
-    const user = { username, password, "gamesPlayed": 0, "gamesWon": 0, "friends": [], "friendRequests": []};
+    const user = { username, password, "roomID": null, "gamesPlayed": 0, "gamesWon": 0, "friends": [], "friendRequests": []};
     data.push(user);
     return user;
   }
 
   static findUser(username) {
     return data.filter(user => user.username === username)[0];
+  }
+
+  static addToRoom(username, roomID){
+    this.findUser(username).roomID = roomID;
+  }
+
+  static removeFromRoom(username){
+    this.findUser(username).roomID = null;
   }
 
   static findUsers(username, searcher) {

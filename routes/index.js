@@ -13,12 +13,19 @@ module.exports = function (io) {
   io.on('connection', function (socket) {
       console.log('User has connected to Index');
       //ON Events
-      socket.on('loggedIn', function () { // updates everyone's game list
-        socket.join("WaitingRoom");
+      socket.on('loggedIn', function (data) { // updates everyone's game list
+        if(data !== null){
+          socket.join(data);
+        }else{
+          socket.join("WaitingRoom");
+        }
       });
 
-      socket.on('loggedOut', function () { // updates everyone's game list
+      socket.on('loggedOut', function (data) { // updates everyone's game list
         socket.leave("WaitingRoom");
+        if(data !== null){
+          socket.leave(data);
+        }
       });
 
       socket.on('create', function (data) { // updates everyone's game list

@@ -1,6 +1,7 @@
 let data = [];
 let roomCounter = 0;
 let Coup = require('./Coup.js');
+let Users = require('./Users.js');
 /**
  * @typedef Rooms
  * @prop {string} creator - the admin of the room
@@ -16,6 +17,7 @@ let Coup = require('./Coup.js');
 class Rooms {
   static createRoom(creator, roomName) {
     const room = {creator, roomName, "id": roomCounter.toString(), "players": [creator]};
+    Users.addToRoom(creator, roomCounter.toString());
     roomCounter++;
     data.push(room);
     return room;
@@ -36,12 +38,14 @@ class Rooms {
   static join(ID, username){
     let room = this.findRoomID(ID);
     room.players.push(username);
+    Users.addToRoom(username, ID);
     return room;
   }
 
   static leave(ID, username){
     let room = this.findRoomID(ID);
     room.players = room.players.filter(user => user !== username);
+    Users.removeFromRoom(username);
     if(username === room.creator){
       room.creator = room.players[0];
     }

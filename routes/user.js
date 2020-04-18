@@ -3,6 +3,8 @@ const express = require('express');
 const router = express.Router();
 
 const Users = require('../models/Users');
+const Rooms = require('../models/Rooms');
+const Coup = require('../models/Coup');
 /**
  * Create a user on Coup.
  * @name POST/api/user/
@@ -23,7 +25,7 @@ router.post('/', (req, res) => {
   } else {
     const user = Users.addUser(req.body.username, req.body.password);
   	req.session.username = req.body.username;
-    res.status(200).json(user).end();
+    res.status(200).json({"username": req.session.username}).end();
   }
 });
 
@@ -141,12 +143,25 @@ router.post('/signin', (req, res) => {
     }).end();
   }else{
   	req.session.username = req.body.username;
-	  res.status(200).json(req.session).end();
+	  res.status(200).json({"username": req.session.username}).end();
   }
 });
 
 router.get('/signedin', (req, res) => {
-  res.status(200).json(req.session.username === undefined? null: req.session.username).end();
+  let username = req.session.username;
+  if(username === undefined){
+    res.status(400).json({
+      error: `Not logged in.`,
+    }).end();
+  }else{
+    let user = Users.findUser(username);
+    if(user.roomID !== null){
+      res.status(200).json({"username": user.username, "roomInfo": Rooms.findRoomID(user.roomID),
+      "gameInfo": Coup.truncGame(user.roomID, user.username)}).end();
+    }else{
+      res.status(200).json({"username": user.username}).end();
+    }
+  }
 });
 
 /**

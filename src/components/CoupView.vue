@@ -109,31 +109,22 @@ export default {
       axios.get('/api/coup/info/' + this.roomID, this.body)
       .then((res) => {
         this.gameInfo = res.data;
-        this.deadCardsPopu();
-        this.myCardsPopu();
-        this.currentPlayer = this.username===this.players[res.data.playerIndex];
-        this.myCoins = this.gameInfo.coinDict[this.username];
-      if(this.myCoins < 7){
-        this.available = false;
-        this.coup = false;
-      }else if(this.myCoins >= 10){
-        this.available = true;
-        this.coup = true;
-      }else{
-        this.available = true;
-        this.coup = false;
-      }
-        eventBus.$emit("game-info",res.data);
-        if(this.chosenAction === "A1"){
-          this.chosenAction = "A2";
-          this.showKill = true;
-        }
+        this.gamePopu();
       });
     });
 
-        eventBus.$on("ended", ()=>{
-          this.clear();
-        });
+    eventBus.$on("signin-success", (res) => {
+      if(res.gameInfo !== undefined){
+        this.$nextTick(function () {
+          this.gameInfo = res.gameInfo;
+          this.gamePopu();
+        })
+      }
+    });
+
+    eventBus.$on("ended", ()=>{
+      this.clear();
+    });
 
     socket.on("action", (data) => {
       var audio;
@@ -167,7 +158,7 @@ export default {
         socket.emit("challengeResults",{"roomID": this.roomID, "loser": req.fromPlayer, "kill": kill});
         eventBus.$emit("add-message",{"message": this.username + " did have " + 
         this.dict[this.chosenAction], "roomID": this.roomID});
-        if(this.chosenAction !== "N"){
+        if(this.chosenAction !== "N" && this.gameInfo.numCards[req.fromPlayer] > kill){
           this.finish();
         }
       }else if(this.username === req.toPlayer && !this.gameInfo.myCards.includes(req.action)){
@@ -247,6 +238,27 @@ export default {
       this.oks = 0;
       this.numKill = 0;
       this.inKill = [false,false,false,false];
+    },
+    gamePopu: function(){
+        this.deadCardsPopu();
+        this.myCardsPopu();
+        this.currentPlayer = this.username===this.players[this.gameInfo.playerIndex];
+        this.myCoins = this.gameInfo.coinDict[this.username];
+      if(this.myCoins < 7){
+        this.available = false;
+        this.coup = false;
+      }else if(this.myCoins >= 10){
+        this.available = true;
+        this.coup = true;
+      }else{
+        this.available = true;
+        this.coup = false;
+      }
+        eventBus.$emit("game-info",this.gameInfo);
+        if(this.chosenAction === "A1"){
+          this.chosenAction = "A2";
+          this.showKill = true;
+        }
     },
     clearModal: function(){
       this.showBlock = false;
@@ -331,16 +343,16 @@ export default {
     handleKill: function(){
       this.showKill = false;
       let chosenCards = [];
+      let str = this.username + " chose to kill ";
+      for(let i = 0; i < this.inKill.length; i++){
+        if(this.inKill[i]){
+          chosenCards.push(this.gameInfo.myCards[i]);
+          str += this.dict[this.gameInfo.myCards[i]] + " "
+        }
+      }
       if(this.chosenAction === "A2"){
         eventBus.$emit("add-message", {"message": this.username + " put 2 cards back into the deck", "roomID": this.roomID});
       }else{
-        let str = this.username + " chose to kill ";
-        for(let i = 0; i < this.inKill.length; i++){
-          if(this.inKill[i]){
-            chosenCards.push(this.gameInfo.myCards[i]);
-            str += this.dict[this.gameInfo.myCards[i]] + " "
-          }
-        }
         eventBus.$emit("add-message", {"message": str + "to die", "roomID": this.roomID});
       }
       this.body = {"id": this.roomID, "player1": this.currentAction.fromPlayer,

@@ -26,7 +26,7 @@
     </div>
     <b-spinner v-show="loading" variant="primary" label="Spinning"></b-spinner>
     <div v-show="inGame">
-      <b-modal :visible="inGame && winner !== ''" hide-header hide-footer>
+      <b-modal :visible="inGame && winner !== ''" no-close-on-esc no-close-on-backdrop hide-header hide-footer>
         The winner is {{winner.winner}}.
         <b-button v-if="creator===username" @click="end">End</b-button>
       </b-modal>
@@ -96,6 +96,18 @@ export default {
       this.players = res.players;
       this.roomID = res.id;
       this.roomName = res.roomName;
+    });
+
+
+    eventBus.$on("signin-success", (res) => {
+      if(res.roomInfo !== undefined){
+        this.creator = res.roomInfo.creator;
+        this.players = res.roomInfo.players;
+        this.roomID = res.roomInfo.id;
+        this.roomName = res.roomInfo.roomName;
+        this.inGame = true;
+        this.loading = true;
+      }
     });
 
     eventBus.$on("leave-room", (username) => {

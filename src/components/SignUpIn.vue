@@ -71,7 +71,7 @@ export default {
       const bodyContent = { username: this.username, password: this.password };
       axios.post('/api/user/signin', bodyContent)
       .then((res) => {
-            eventBus.$emit('signin-success', res.data.username);
+            eventBus.$emit('signin-success', res.data);
             this.clear();
       })
       .catch(err => {
@@ -82,7 +82,7 @@ export default {
       const bodyContent = { username: this.username, password: this.password };
       axios.post('/api/user', bodyContent)
       .then((res) => {
-            eventBus.$emit('signin-success', res.data.username);
+            eventBus.$emit('signin-success', res.data);
             this.clear();
       })
       .catch(err => {
