@@ -32,14 +32,14 @@
       </b-modal>
     </div>
 
-      <div class="columns">
-        <Messages/>
-        <CoupView 
-        v-show="inGame && !dead"
-        v-bind:username="username"
-        v-bind:players="players"
-        v-bind:roomID="roomID"/>
-      </div>
+    <div class="columns">
+      <Messages/>
+      <CoupView 
+      v-show="inGame && !dead"
+      v-bind:username="username"
+      v-bind:players="players"
+      v-bind:roomID="roomID"/>
+    </div>
   </div>
 </template>
 
@@ -79,25 +79,29 @@ export default {
     socket.on('join', (data) => {
       this.players = data.players;
     });
+
     socket.on('leave', (data) => {
       this.players = data.players;
       this.creator = data.creator;
     });
+
     socket.on("ended",()=>{
       this.clear();
     });
+
     socket.on("winner",(data)=>{
       var audio = new Audio(require('./media/omg1.mp3'));
       audio.play();
       this.winner = data;
+      this.inGame = false;
     });
+
     eventBus.$on("joined-room", (res) => {
       this.creator = res.creator;
       this.players = res.players;
       this.roomID = res.id;
       this.roomName = res.roomName;
     });
-
 
     eventBus.$on("signin-success", (res) => {
       if(res.roomInfo !== undefined){
@@ -132,10 +136,6 @@ export default {
     socket.on("block",(data)=>{
       this.block = data.player;
     })
-    
-    socket.on("started", () => {
-      this.inGame = true;
-    });
 
     socket.on("loading", () => {
       this.loading = true;
@@ -202,7 +202,6 @@ export default {
       .then(() => {
         this.clear();
         eventBus.$emit("add-message", {"message": "Game ended", "roomID": this.roomID});
-        eventBus.$emit("ended");
         socket.emit("ended", {"roomID": this.roomID});
       });
     }

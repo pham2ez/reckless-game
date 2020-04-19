@@ -32,7 +32,7 @@
           </div>
       </b-tab>
     </b-tabs>
-      <!-- sort by if friends in game or in a room; if in room, allow to join -->
+    <!-- TODO sort for friends in game or in a room-->
   </div>
 </template>
 
@@ -55,11 +55,11 @@ export default {
   },
   created: function(){
     this.getFriends();
-    eventBus.$on("friend-requested", () => {
+    eventBus.$on("friend-requested", () => { // requested a friend, clear search
       this.search = "";
       this.show = [];
     });
-    eventBus.$on("update-requests", () => {
+    eventBus.$on("update-requests", () => { // accepted/rejected a friend, update list
       this.getRequests();
     });
   },

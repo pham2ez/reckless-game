@@ -1,14 +1,14 @@
 <template>
   <div class="gamesList">
     <GameItem
-          v-for="game in gameList"
-          v-bind:key="game.id"
-          v-bind:roomName="game.roomName"
-          v-bind:roomID="game.id"
-          v-bind:players="game.players"
-    />
+      v-for="game in gameList"
+      v-bind:key="game.id"
+      v-bind:roomName="game.roomName"
+      v-bind:roomID="game.id"
+      v-bind:players="game.players"/>
   </div>
 </template>
+
 <script>
 import axios from "axios";
 import { eventBus,socket } from "../main";
@@ -19,18 +19,19 @@ export default {
   components:{
     GameItem
   },
-  props: [],
   data() {
     return {
       gameList: []
     }
   },
   created: function(){
-    socket.on('create', () => {
+    this.getRooms();
+
+    socket.on('create', () => { // TODO add room to gamesList
       this.getRooms();
     });
 
-    socket.on('join', () => {
+    socket.on('join', () => { // TODO update only the room's players
       this.getRooms();
     });
 
@@ -38,9 +39,6 @@ export default {
       this.getRooms();
     });
 
-    eventBus.$on("room-added", () => {
-      this.getRooms();
-    });
     eventBus.$on("search", (req) => {
       if(req === ""){
         this.getRooms();
@@ -51,12 +49,9 @@ export default {
         });
       }
     });
-    this.getRooms();
-  },
-  computed: {
   },
   methods: {
-    getRooms: function(){
+    getRooms: function(){ // TODO specific getRoom info
       axios.get('/api/room/rooms', {})
       .then((res) => {
         this.gameList = res.data;

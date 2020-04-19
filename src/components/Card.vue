@@ -1,10 +1,7 @@
 <template>
-    <b-card
-    :title="title"
-    img-top
-    :img-src="img"
-    :style="style"
-    :class="classy"
+  <b-card
+    :title="title" :style="style" :class="classType"
+    img-top :img-src="img"
     @click="choose"
     @mouseover="onHover"
     @mouseout="onLeave">
@@ -15,7 +12,6 @@
 </template>
 
 <script>
-// import axios from "axios";
 import { eventBus } from "../main";
 
 export default {
@@ -29,16 +25,16 @@ export default {
   },
   created: function(){
     if(this.role === "A1"){
-        this.textArray = ["Exchange cards with Court Deck.","Blocks stealing."];
-      }else if(this.role === "C"){
-        this.textArray = [ "Blocks assassination."];
-      }else if(this.role === "D"){
-        this.textArray = [ "Take 3 coins from Treasury.","Blocks Foreign Aid."];
-      }else if(this.role === "N"){
-        this.textArray = [ "Pay 3 coins to assassinate another player."];
-      }else if (this.role === "T"){
-        this.textArray = [ "Steal 2 coins from another player.","Blocks stealing."];
-      }
+      this.textArray = ["Exchange cards with Court Deck.","Blocks stealing."];
+    }else if(this.role === "C"){
+      this.textArray = [ "Blocks assassination."];
+    }else if(this.role === "D"){
+      this.textArray = [ "Take 3 coins from Treasury.","Blocks Foreign Aid."];
+    }else if(this.role === "N"){
+      this.textArray = [ "Pay 3 coins to assassinate another player."];
+    }else if (this.role === "T"){
+      this.textArray = [ "Steal 2 coins from another player.","Blocks stealing."];
+    }
   },
   computed: {
     title: function(){
@@ -55,7 +51,7 @@ export default {
       }
     },
     style: function(){
-      if(this.hover){
+      if(this.hover){ // bigger if hovered over
         return "max-width: 15rem;";
       }else{
         return "max-width: 12rem";
@@ -74,7 +70,7 @@ export default {
         return require('./media/Captain.jpg');
       }
     },
-    classy: function(){
+    classType: function(){
       if(!this.available){
         return "dark";
       }else{
@@ -84,10 +80,9 @@ export default {
   },
   methods: {
     choose: function(){
-      if(!this.available){
-        return;
+      if(this.available){
+        eventBus.$emit("chosen-card",this.role);
       }
-      eventBus.$emit("chosen-card",this.role);
     },
     onHover: function(){
       this.hover = true;

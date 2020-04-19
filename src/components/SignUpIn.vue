@@ -14,7 +14,6 @@
           <input type='submit' v-bind:value="title">
       </div>
     </form>
-    
   </div>
 </template>
 
@@ -71,23 +70,23 @@ export default {
       const bodyContent = { username: this.username, password: this.password };
       axios.post('/api/user/signin', bodyContent)
       .then((res) => {
-            eventBus.$emit('signin-success', res.data);
-            this.clear();
+        eventBus.$emit('signin-success', res.data);
+        this.clear();
       })
       .catch(err => {
-            eventBus.$emit("error",err.response.data.error);
-          });
+        eventBus.$emit("error",err.response.data.error); // TODO alert/error
+      });
     },
     signUp: function(){
       const bodyContent = { username: this.username, password: this.password };
       axios.post('/api/user', bodyContent)
       .then((res) => {
-            eventBus.$emit('signin-success', res.data);
-            this.clear();
+        eventBus.$emit('signin-success', res.data);
+        this.clear();
       })
       .catch(err => {
-            eventBus.$emit('error',err.response.data.error);
-          });
+        eventBus.$emit('error',err.response.data.error);
+      });
     }
   }
 }

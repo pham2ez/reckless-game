@@ -21,8 +21,6 @@ import { eventBus } from "../main";
 export default {
   name: 'FriendsItem',
   props: ["username","mode","status","roomID"],
-  created: function(){
-  },
   computed: {
     showStatus: function(){
       if(this.status === 'room'){
@@ -33,25 +31,28 @@ export default {
     }
   },
   methods: {
-    join: function(){
+    join: function(){ // TODO have a way to return this for a friend
       axios.put('/api/room/players/'+this.roomID, {})
       .then((res) => {
         eventBus.$emit('joined-room', res.data);
       })
     },
     accept: function(){
+      // TODO add an alert to notify of accept
       axios.put('/api/user/request/'+this.username, {})
       .then(() => {
         eventBus.$emit('update-requests');
       })
     },
     reject: function(){
+      // TODO add an alert to notify of reject
       axios.delete('/api/user/request/'+this.username, {})
       .then(() => {
         eventBus.$emit('update-requests');
       })
     },
     request: function(){
+      // TODO add an alert to notify of request
       axios.post('/api/user/request/'+this.username, {})
       .then(() => {
         eventBus.$emit('friend-requested');

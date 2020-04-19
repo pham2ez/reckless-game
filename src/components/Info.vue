@@ -1,7 +1,5 @@
 <template>
-    <b-card
-    class="info"
-    :title="title">
+  <b-card class="info" :title="title">
     <b-card-text v-for="text in textArray" v-bind:key="text">
       {{text}}
     </b-card-text>

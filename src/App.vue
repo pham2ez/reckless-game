@@ -20,8 +20,7 @@
     <b-modal id="my-modal" title="Create a Room" @ok="createRoom">
       <input type="text"
         v-model="roomName"
-        placeholder="Enter a room name"
-        />
+        placeholder="Enter a room name"/>
     </b-modal>
 
     <div class="home" v-if="signedin && !inRoom">
@@ -32,11 +31,14 @@
         <FriendsList/>
       </div>
     </div>
+
     <SignUpIn v-if="!signedin"/>
+
     <WaitRoomView v-show="signedin && inRoom"
       v-bind:username="username"/>
   </div>
 </template>
+
 <script>
 import axios from "axios";
 import { eventBus, socket } from "./main";
@@ -67,25 +69,21 @@ export default {
   },
   methods: {
     signOut: function(){
-      if(this.roomID !== null){
+      if(this.roomID !== null){ // leave room during signout
         eventBus.$emit("leave-room",this.username);
       }
-        axios.delete('/api/user/signout', {})
-        .then(() => {
-          this.clearUser();
-        });
-        socket.emit("loggedOut",this.roomID !== null? this.roomID: null);
-    },
-    clearUser: function(){
-      this.username = null;
+      axios.delete('/api/user/signout', {})
+      .then(() => {
+        this.username = null;
+      });
+      socket.emit("loggedOut", this.roomID !== null? this.roomID: null); // no more create room updates
     },
     createRoom: function(){
       axios.post('/api/room', {content: this.roomName})
-    .then((res) => {
-            eventBus.$emit("joined-room",res.data);
-            eventBus.$emit("room-added");
-            socket.emit('create',res.data);
-            this.roomName = "";
+      .then((res) => {
+        eventBus.$emit("joined-room",res.data);
+        socket.emit('create',res.data);
+        this.roomName = "";
       })
     },
     changeSearch: function(){
@@ -93,17 +91,17 @@ export default {
     }
   },
   created: function() {
-    axios.get('/api/user/signedin', {})
-      .then((res)=>{
-        eventBus.$emit("signin-success", res.data);
-        if(res.data.gameInfo !== undefined){
-          this.roomID = res.data.roomInfo.id;
-          this.inRoom = true;
-        }
-      })
-      .catch(()=>{
-        eventBus.$emit("signin-success", {"username": null})
-      });
+    axios.get('/api/user/signedin') // check is user is signed in or not
+    .then((res)=>{
+      eventBus.$emit("signin-success", res.data);
+      if(res.data.gameInfo !== undefined){
+        this.roomID = res.data.roomInfo.id;
+        this.inRoom = true;
+      }
+    })
+    .catch(()=>{
+      eventBus.$emit("signin-success", {"username": null})
+    });
 
     eventBus.$on("joined-room", (req) => {
       this.roomID = req.id;
@@ -112,8 +110,8 @@ export default {
     });
 
     eventBus.$on("left-room", () => {
-      this.inRoom = false;
       this.roomID = null;
+      this.inRoom = false;
     });
 
     eventBus.$on("signin-success", (res) => {
