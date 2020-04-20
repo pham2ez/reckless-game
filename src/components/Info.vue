@@ -1,6 +1,6 @@
 <template>
   <b-card class="info" :title="title">
-    <b-card-text v-for="text in textArray" v-bind:key="text">
+    <b-card-text v-for="(text, index) in textArray" v-bind:key="text + index">
       {{text}}
     </b-card-text>
   </b-card>

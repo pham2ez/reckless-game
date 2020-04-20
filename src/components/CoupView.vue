@@ -112,11 +112,12 @@ export default {
   },
   created: function(){
     socket.on("getInfo", () => {
-      if(this.chosenAction !== "A1" && this.chosenAction !== "A2" && this.chosenAction !== "BS1"){
-        this.clear();
-      }
+      
       axios.get('/api/coup/info/' + this.roomID, this.body)
       .then((res) => {
+        if(res.data.checkpoint.completed && this.chosenAction !== "A1"){
+          this.clear();
+        }
         this.gameInfo = res.data;
         this.gamePopu();
       });
@@ -127,11 +128,8 @@ export default {
     });
 
     socket.on("action", (data) => {
-      var audio;
       this.currentAction = data;
       if(data.toPlayer === this.username && data.action === "COUP"){
-        audio = new Audio(require('./media/omg2.mp3'));
-        audio.play();
         this.chosenAction = "COUP";
         this.numKill = 1;
         this.showKill = true;
@@ -140,20 +138,11 @@ export default {
       this.show = true;
       this.title = this.currentAction.fromPlayer + "'s " + this.dict[this.currentAction.action];
       this.title += data.toPlayer !== undefined? " to " + data.toPlayer: "";
-      if(data.toPlayer === this.username || data.action === "FA"){
-        audio = new Audio(require('./media/approachingMe.mp3'));
-        audio.play();
-        if(this.currentAction.action === "FA"){
-          this.chosenAction = "FA";
-        }
-      }
     });
 
     socket.on("challenge",(req)=>{
-      var audio;
       if(this.username === req.toPlayer && this.gameInfo.myCards.includes(req.action)){
-        audio = new Audio(require('./media/yoink.mp3'))
-        audio.play();
+        axios.put('/api/coup/update/'+this.roomID, {"state": "CHALLENGE", "player": req.fromPlayer});
         let kill = this.chosenAction === "N"? 2: 1;
         socket.emit("challengeResults",{"roomID": this.roomID, "loser": req.fromPlayer, "kill": kill});
         eventBus.$emit("add-message",{"message": this.username + " did have " + 
@@ -162,12 +151,11 @@ export default {
           this.finish();
         }
       }else if(this.username === req.toPlayer && !this.gameInfo.myCards.includes(req.action)){
-        audio = new Audio(require('./media/bruh.mp3'))
-        audio.play();
+        axios.put('/api/coup/update/'+this.roomID, {"state": "CHALLENGE", "player": req.toPlayer});
         eventBus.$emit("add-message",{"message": this.username + " did not have " + 
-          this.dict[this.chosenAction], "roomID": this.roomID});
+          this.dict[req.action], "roomID": this.roomID});
         this.chosenAction = "BS2";
-        this.numKill = req.action === "C"? 2: 1;
+        this.numKill = req.action === "C" && this.gameInfo.myCards.length === 2? 2: 1;
         this.showKill = true; // for challenge
       }else{ // not the one being challenged so can wait
         this.clearModal();
@@ -179,8 +167,6 @@ export default {
         this.chosenAction = "BS1";
         this.showKill = true; // for challenge
         this.numKill = req.kill > this.gameInfo.myCards.length? this.gameInfo.myCards.length: req.kill;
-        var audio = new Audio(require('./media/nope.mp3'));
-        audio.play();
       }
     });
 
@@ -191,7 +177,11 @@ export default {
     socket.on("ok",(req)=>{
       if(this.username === req.player){
         this.oks++;
-        if(this.oks === (this.players.length-1 - this.gameInfo.deadPlayers.length)){
+// eslint-disable-next-line no-console
+console.log(this.oks);
+        if((this.chosenAction === "T" || this.chosenAction === "N") && req.okPlayer === this.chosenPlayer){
+          this.finish();
+        }else if(this.oks === (this.players.length-1 - this.gameInfo.deadPlayers.length)){
           eventBus.$emit("add-message", {"message": "Action successfully went through", "roomID": this.roomID});
           this.finish();
         }
@@ -203,25 +193,27 @@ export default {
         this.$nextTick(function () {
           this.gameInfo = res.gameInfo;
           this.gamePopu();
+          this.currentState();
         })
       }
     });
 
     eventBus.$on("chosen-card", (req)=>{
-      var audio = new Audio(require('./media/click.mp3'))
-      audio.play();
       this.currentPlayer = false;
       this.chosenAction = req;
       if(this.blocking){
+        axios.put('/api/coup/update/'+this.roomID, {"state": "BLOCK", "action": req, "player": this.username});
         eventBus.$emit("add-message",{"message": this.username + " blocks with " + this.dict[this.chosenAction], "roomID": this.roomID});
-        socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "blockedAction": this.currentAction.action,
-          "fromPlayer": this.username, "toPlayer": this.currentAction.fromPlayer});
-        this.chosenAction = null;
+        this.currentAction = {"roomID": this.roomID, "action": this.chosenAction, "blockedAction": this.currentAction.action,
+          "fromPlayer": this.username, "toPlayer": this.currentAction.fromPlayer};
+        socket.emit("action", this.currentAction);
       }else if(req === "N" || req === "T"){
         this.showChoose = true;
       }else{
+        axios.put('/api/coup/update/'+this.roomID, {"state": "MOVE", "action": req, "player": this.username});
         eventBus.$emit("add-message",{"message": this.username + " chose " + this.dict[req], "roomID": this.roomID});
-        socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username});
+        this.currentAction = {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username};
+        socket.emit("action", this.currentAction);
       }
     });
   },
@@ -230,8 +222,10 @@ export default {
       if(this.currentAction === null){
         return false;
       }else{
-        let blockableRoles = ["IN","N","T"];
-        return this.currentAction.blockedAction !== undefined? false: blockableRoles.includes(this.currentAction.action);
+        let blockableRoles = ["FA","N","T"];
+        return this.currentAction.blockedAction !== undefined? false: 
+          (this.currentAction.toPlayer === this.username || this.currentAction.action === "FA") &&
+            blockableRoles.includes(this.currentAction.action);
       }
     },
     challengable: function(){
@@ -256,7 +250,7 @@ export default {
     gamePopu: function(){
       this.deadCardsPopu();
       this.myCardsPopu();
-      this.currentPlayer = this.username===this.players[this.gameInfo.playerIndex];
+      this.currentPlayer = this.username===this.players[this.gameInfo.playerIndex] && this.gameInfo.checkpoint.completed;
       this.myCoins = this.gameInfo.coinDict[this.username];
       if(this.myCoins < 7){
         this.available = false;
@@ -290,7 +284,8 @@ export default {
       this.chosenAction = "FA";
       this.currentPlayer = false;
       eventBus.$emit("add-message",{"message": this.username + " chose foreign aid", "roomID": this.roomID});
-      socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username});
+      this.currentAction = {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username};
+      socket.emit("action", this.currentAction);
     },
     coupClick: function(){
       this.showChoose = true;
@@ -301,13 +296,16 @@ export default {
       this.showChoose = false;
       eventBus.$emit("add-message",{"message": this.username + " picked " + player + " to use "
        + this.dict[this.chosenAction] + " on", "roomID": this.roomID});
-      socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username, "toPlayer": player});
+       this.currentAction = {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username, "toPlayer": player};
+      axios.put('/api/coup/update/'+this.roomID, {"state": "MOVE", "action": this.chosenAction, "player": this.username, "toPlayer": player});
+      socket.emit("action", this.currentAction);
     },
     chooseBlock: function(role){
       this.showChooseBlock = false;
       eventBus.$emit("chosen-card",role);
     },
     finish: function(){
+      axios.put('/api/coup/update/'+this.roomID, {"state": "FINISH"});
       this.body = {"id": this.roomID, "player1": this.username, "player2": this.chosenPlayer,
         "action":this.chosenAction, "cards":[]}
       axios.put('/api/coup/move', this.body)
@@ -335,20 +333,18 @@ export default {
     },
     handleOk: function(){
       this.clearModal();
+      axios.put('/api/coup/update/'+this.roomID, {"state": "CHOOSE", "player": this.username});
       if(this.currentAction.blockedAction === undefined){ // allow move
         eventBus.$emit("add-message", {"message": this.username + " did nothing", "roomID": this.roomID}); // if original player
         if(this.currentAction.action === "N" && this.username === this.currentAction.toPlayer){ // if oked assassin on theirself
-          socket.emit("block",{"roomID": this.roomID})
+          socket.emit("block",{"roomID": this.roomID});
+          socket.emit("ok", {"roomID": this.roomID, "player": this.currentAction.fromPlayer, "okPlayer": this.username});
           this.chosenAction = "N";
           this.numKill = 1;
           this.showKill = true; // for assassin
-          var audio = new Audio(require('./media/nani.mp3'))
-          audio.play();
         }else if(this.currentAction.action === "T" && this.username === this.currentAction.toPlayer){ // if oked assassin on theirself
-          socket.emit("block",{"roomID": this.roomID})
-          // go ahead to original player
-          audio = new Audio(require('./media/nani.mp3'))
-          audio.play();
+          socket.emit("block",{"roomID": this.roomID});
+          socket.emit("ok", {"roomID": this.roomID, "player": this.currentAction.fromPlayer, "okPlayer": this.username});
         }else{
           socket.emit("ok", {"roomID": this.roomID, "player": this.currentAction.fromPlayer, "okPlayer": this.username});
         }
@@ -357,6 +353,7 @@ export default {
         if(this.chosenAction === "N"){ // wasted 3 coins to try to assassin
           this.finish();
         }else{
+          axios.put('/api/coup/update/'+this.roomID, {"state": "FINISH"});
           axios.get('/api/coup/next/'+this.roomID)
           .then(() => {
             socket.emit("getInfo", {"roomID": this.roomID});
@@ -383,6 +380,7 @@ export default {
         body.player1 = this.currentAction.fromPlayer;
         body.player2 = this.username;
       }
+
       axios.put('/api/coup/move', body)
       .then((req) => {
         this.clear();
@@ -390,7 +388,10 @@ export default {
           socket.emit("winner",{"roomID": this.roomID, "winner": req.data});
           eventBus.$emit("add-message", {"message": req.data + " won the game!", "roomID": this.roomID});
         }else{
-          socket.emit("getInfo", {"roomID": this.roomID});
+          axios.put('/api/coup/update/'+this.roomID, {"state": "KILL", "player": this.username})
+          .then(()=>{
+            socket.emit("getInfo", {"roomID": this.roomID});
+          })
         }
       });
     },
@@ -414,6 +415,49 @@ export default {
         array.push(this.dict[key] + ": " + this.gameInfo.deadCards[key] + "/3");
       }
       this.deadCardsArray = array;
+    },
+    currentState: function(){
+      
+      let checkpoint = this.gameInfo.checkpoint;
+// eslint-disable-next-line no-console
+console.log(checkpoint);
+
+      this.currentAction = {"roomID": this.roomID, "fromPlayer": checkpoint.player, "toPlayer": checkpoint.toPlayer};
+      if(checkpoint.state === "CHOOSE"){
+        if(checkpoint.responded.includes(this.username)){
+          this.oks = checkpoint.responded.length-1;
+          this.chosenPlayer = checkpoint.toPlayer;
+          this.chosenAction = checkpoint.action;
+          return;
+        }
+        this.show = true;
+        this.currentAction.action = checkpoint.action;
+        this.chosenAction = "BS1";
+        this.title = checkpoint.toPlayer === undefined? checkpoint.player + "'s " + this.dict[checkpoint.action]:
+          checkpoint.player + "'s " + this.dict[checkpoint.action] + " to " + checkpoint.toPlayer;
+      }else if(checkpoint.state === "KILL"){
+        this.currentPlayer = false;
+        if(checkpoint.loser === this.username){ // challenge
+          this.chosenAction = "BS1";
+          this.showKill = true;
+          if(checkpoint.loser === checkpoint.fromPlayer){
+            this.chosenAction = "BS2";
+            this.numKill = checkpoint.blockedAction === "C" && this.gameInfo.myCards.length === 2? 2: 1;
+          }else if(checkpoint.loser === checkpoint.toPlayer){
+            this.numKill = checkpoint.action === "N" && this.gameInfo.myCards.length === 2? 2: 1;
+          }else{
+            this.numKill = 1;
+          }
+        }else if(checkpoint.toPlayer === this.username){ // assassin/coup
+          this.chosenAction = checkpoint.action;
+          this.showKill = true;
+          this.numKill = 1;
+        }else if(checkpoint.player === this.username && checkpoint.action === "A2"){ // ambassador
+          this.chosenAction = "A2";
+          this.showKill = true;
+          this.numKill = 2;
+        }
+      }
     }
   }
 }

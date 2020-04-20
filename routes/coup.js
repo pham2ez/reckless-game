@@ -25,7 +25,7 @@ router.get('/next/:id', (req, res) => {
  * @name GET/api/coup/update
  */
 router.put('/update/:id', (req, res) => {
-  Coup.checkpoint(req);
+  Coup.checkpoint(req.body,req.params.id);
   res.status(200).json(true).end();
 });
 

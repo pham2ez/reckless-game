@@ -25,7 +25,7 @@ class Coup {
       let index = game.players.indexOf(winner);
       game.playerIndex = index === -1? 0: index;
       game.players = players; // in case someone leaves/someone new comes
-      game.checkpoint.state = "MOVE"
+      game.checkpoint = {"state": "WAIT", "completed": true};
       game.coinDict = coinDict;
       game.courtList = courtList;
       game.deadPlayers = [];
@@ -33,7 +33,7 @@ class Coup {
       game.playersCards = {}
       this.distributeCards(game);
     }else{
-      game = { ID, players, "checkpoint": {"state": "MOVE", "action": "", "fromPlayer": "", "toPlayer": ""},
+      game = { ID, players, "checkpoint": {"state": "WAIT", "completed": true},
         "oks": 0, "coinDict": coinDict, "courtList": courtList,
         "playersCards": {}, "playerIndex": 0, "deadPlayers": [], "deadCards": {"N":0,"A1":0,"T":0,"C":0,"D":0}};
       this.distributeCards(game);
@@ -112,7 +112,53 @@ class Coup {
   }
 
   // GAME ACTIONS
-  static checkpoint(req){
+  static checkpoint(req,id){
+    console.log(req);
+    let game = this.findGame(id);
+    if(req.state === "MOVE"){
+      game.checkpoint.action = req.action;
+      game.checkpoint.player = req.player;
+      game.checkpoint.toPlayer = req.toPlayer;
+      if(req.action === "COUP"){
+        game.checkpoint.state = "KILL";
+      }else if(req.action === "IN"){
+        game.checkpoint.state = "MOVE";
+      }else{
+        game.checkpoint.state = "CHOOSE";
+        game.checkpoint.responded = [req.player];
+        game.checkpoint.completed = false;
+      }
+    }else if(req.state === "CHOOSE"){
+      game.checkpoint.responded.push(req.player);
+    }else if(req.state === "FINISH"){
+      game.checkpoint.player = game.checkpoint.action !== "A1"? undefined: game.checkpoint.player;
+      game.checkpoint.completed = game.checkpoint.loser === undefined;
+      game.checkpoint.state = game.checkpoint.completed && game.checkpoint.action !== "A1"? "WAIT": "KILL";
+      game.checkpoint.action = game.checkpoint.action !== "A1"? game.checkpoint.action: "A2";
+    }else if(req.state === "BLOCK"){
+      game.checkpoint.responded = [];
+      game.checkpoint.blockedAction = req.action;
+      game.checkpoint.toPlayer = req.player;
+    }else if(req.state === "CHALLENGE"){
+      game.checkpoint.loser = req.player;
+      game.checkpoint.completed = false;
+      game.checkpoint.state = "KILL";
+      if(game.checkpoint.loser === game.checkpoint.player){
+        game.checkpoint.player = undefined;
+      }
+    }else if(req.state === "KILL"){ // challenge result
+      if(req.player === game.checkpoint.loser){ // challenge loser
+        game.checkpoint.loser = undefined;
+        game.checkpoint.completed = game.checkpoint.player === undefined;
+      }else if(req.player === game.checkpoint.player){ // ambassador fin
+        game.checkpoint.player = undefined;
+        game.checkpoint.completed = game.checkpoint.loser === undefined;
+      }else if(req.player === game.checkpoint.toPlayer){ // assassin
+        game.checkpoint.completed = true;
+      }
+      game.checkpoint.state = game.checkpoint.completed? "WAIT": "KILL";
+    }
+    console.log(game.checkpoint);
   }
 
   // do after we check if other player wants to block or wants to bs this player
@@ -127,7 +173,7 @@ class Coup {
     }else if(action === "COUP"){
       this.addCoins(game,player1,-7);
       this.killAction(game, player2, kill[0])
-    }else if(action === "BS"){
+    }else if(action === "BS1" || action === "BS2"){
       for(let i = 0; i < kill.length; i++){
         this.killAction(game, player2, kill[i])
       }
@@ -153,7 +199,7 @@ class Coup {
       let index = game.players.indexOf(winner);
       return game.players[index];
     }
-    if(action !== "A1" && action != "BS"){
+    if(action !== "A1" && action != "BS1"){
       do{
         game.playerIndex = (game.playerIndex + 1) % game.players.length;
       }while(game.deadPlayers.includes(game.players[game.playerIndex]))

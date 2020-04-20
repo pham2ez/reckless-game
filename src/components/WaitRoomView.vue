@@ -90,10 +90,7 @@ export default {
     });
 
     socket.on("winner",(data)=>{
-      var audio = new Audio(require('./media/omg1.mp3'));
-      audio.play();
       this.winner = data;
-      this.inGame = false;
     });
 
     eventBus.$on("joined-room", (res) => {
@@ -204,6 +201,7 @@ export default {
         this.clear();
         eventBus.$emit("add-message", {"message": "Game ended", "roomID": this.roomID});
         socket.emit("ended", {"roomID": this.roomID});
+        this.inGame = false;
       });
     }
   }
