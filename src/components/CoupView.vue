@@ -14,18 +14,18 @@
       <b-button v-show="!coup" @click="foreignAid">Foreign Aid</b-button>
       <b-button v-show="(available || coup)" @click="coupClick">Coup</b-button>
     </div>
-    <div class="cards" v-show="(currentPlayer || blockingPlayer) && !coup">
+    <div class="cards" v-show="currentPlayer && !coup">
       <!-- only on their turn -->
       <Card v-bind:role="'D'"
-        v-bind:available="chosenAction === null || (chosenAction === 'FA')"/>
+        v-bind:available="chosenAction === null"/>
       <Card v-bind:role="'N'"
         v-bind:available="chosenAction === null && myCoins >= 3"/>
       <Card v-bind:role="'A1'"
-        v-bind:available="chosenAction === null || chosenAction === 'T'"/>
+        v-bind:available="chosenAction === null"/>
       <Card v-bind:role="'T'"
-        v-bind:available="chosenAction === null || chosenAction === 'T'"/>
+        v-bind:available="chosenAction === null"/>
       <Card v-bind:role="'C'"
-        v-bind:available="chosenAction === 'N'"/>
+        v-bind:available="false"/>
     </div>
     <div class="modals">
       <!-- The modals -->
@@ -33,16 +33,25 @@
           <div class="actions">
             <b-button v-for="player in players"
               v-bind:key="player"
-              v-show="player !== username && (chosenAction === "T" && gameInfo.coinDict[player] >= 2)"
+              v-show="player !== username && ((chosenAction === 'T' && gameInfo.coinDict[player] >= 2) || chosenAction === 'N' || chosenAction === 'COUP')"
               @click="choose(player)">{{player}}</b-button>
             <b-button @click="back">Back</b-button>
           </div>
         </b-modal>
 
+        <b-modal :title="'Choose which card to block with'" :visible="showChooseBlock" no-close-on-esc no-close-on-backdrop hide-footer hide-header-close>
+          <div class="actions">
+            <b-button  v-show="chosenAction === 'FA'" @click="chooseBlock('D')">Duke</b-button>
+            <b-button v-show="chosenAction === 'T'" @click="chooseBlock('A1')">Ambassador</b-button>
+            <b-button v-show="chosenAction === 'T'" @click="chooseBlock('T')">Captain</b-button>
+            <b-button v-show="chosenAction === 'N'" @click="chooseBlock('C')">Contessa</b-button>
+          </div>
+        </b-modal>
+
         <b-modal :title="title" :visible="show" no-close-on-esc no-close-on-backdrop hide-footer hide-header-close>
           <div class="actions">
-            <b-button v-if="showBlock" @click="block">Block</b-button>
-            <b-button v-if="showChallenge" @click="challenge">Challenge</b-button>
+            <b-button v-show="blockable" @click="block">Block</b-button>
+            <b-button v-show="challengable" @click="challenge">Challenge</b-button>
             <b-button @click="handleOk">Do Nothing</b-button>
           </div>
         </b-modal>
@@ -81,14 +90,13 @@ export default {
       blocking: false,
 
       currentPlayer: false,
-      blockingPlayer: false,
 
       showChoose: false,
-      showBlock: false,
-      showChallenge: false,
+      showChooseBlock: false,
       showKill: false,
+      show: false,
 
-      myCoins: 0
+      myCoins: 0,
       available: false,
       coup: false,
       oks: 0,
@@ -121,24 +129,24 @@ export default {
     socket.on("action", (data) => {
       var audio;
       this.currentAction = data;
-      this.title = this.currentAction.fromPlayer + "'s " + this.dict[this.currentAction.action];
-      this.title += data.toPlayer !== undefined? " to " + data.toPlayer: "";
-      if(data.toPlayer === this.username && !data.blockable && !data.challengable){
-        audio = new Audio(require('./media/omg2.mp3'))
+      if(data.toPlayer === this.username && data.action === "COUP"){
+        audio = new Audio(require('./media/omg2.mp3'));
         audio.play();
         this.chosenAction = "COUP";
         this.numKill = 1;
-        this.showKill = true; // for coup
+        this.showKill = true;
+        return;
       }
-      if(data.toPlayer === this.username || this.currentAction.action === "FA"){
-        audio = new Audio(require('./media/approachingMe.mp3'))
+      this.show = true;
+      this.title = this.currentAction.fromPlayer + "'s " + this.dict[this.currentAction.action];
+      this.title += data.toPlayer !== undefined? " to " + data.toPlayer: "";
+      if(data.toPlayer === this.username || data.action === "FA"){
+        audio = new Audio(require('./media/approachingMe.mp3'));
         audio.play();
         if(this.currentAction.action === "FA"){
           this.chosenAction = "FA";
         }
-        this.showBlock = data.blockable && !this.gameInfo.deadPlayers.includes(this.username);
       }
-      this.showChallenge = data.challengable && !this.gameInfo.deadPlayers.includes(this.username);
     });
 
     socket.on("challenge",(req)=>{
@@ -203,44 +211,47 @@ export default {
       var audio = new Audio(require('./media/click.mp3'))
       audio.play();
       this.currentPlayer = false;
-      this.blockingPlayer = false;
       this.chosenAction = req;
       if(this.blocking){
         eventBus.$emit("add-message",{"message": this.username + " blocks with " + this.dict[this.chosenAction], "roomID": this.roomID});
         socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "blockedAction": this.currentAction.action,
-          "blockable": false, "challengable": true,
           "fromPlayer": this.username, "toPlayer": this.currentAction.fromPlayer});
         this.chosenAction = null;
       }else if(req === "N" || req === "T"){
         this.showChoose = true;
       }else{
         eventBus.$emit("add-message",{"message": this.username + " chose " + this.dict[req], "roomID": this.roomID});
-          socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "blockable": false,
-          "challengable": true, "fromPlayer": this.username});
+        socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username});
       }
     });
   },
   computed: {
-    show: function(){
-      return (this.showChallenge || this.showBlock) && !this.blocking;
+    blockable: function(){
+      if(this.currentAction === null){
+        return false;
+      }else{
+        let blockableRoles = ["IN","N","T"];
+        return this.currentAction.blockedAction !== undefined? false: blockableRoles.includes(this.currentAction.action);
+      }
+    },
+    challengable: function(){
+      let challengableRoles = ["D","N","T","C","A1"];
+      return this.currentAction === null? false: challengableRoles.includes(this.currentAction.action);
     }
   },
   methods: {
     clear: function(){
-      chosenAction = null;
-      chosenPlayer = null;
-      currentAction = null;
-      blocking = false;
-      blockingPlayer = false;
+      this.chosenAction = null;
+      this.chosenPlayer = null;
+      this.currentAction = null;
+      this.blocking = false;
 
-      showChoose = false;
-      showBlock = false;
-      showChallenge = false;
-      showKill = false;
+      this.showChoose = false;
+      this.showKill = false;
 
-      oks = 0;
-      numKill = 0;
-      inKill = [false,false,false,false];
+      this.oks = 0;
+      this.numKill = 0;
+      this.inKill = [false,false,false,false];
     },
     gamePopu: function(){
       this.deadCardsPopu();
@@ -264,8 +275,7 @@ export default {
       }
     },
     clearModal: function(){
-      this.showBlock = false;
-      this.showChallenge = false;
+      this.show = false;
     },
     back: function(){
       this.chosenAction = null;
@@ -280,8 +290,7 @@ export default {
       this.chosenAction = "FA";
       this.currentPlayer = false;
       eventBus.$emit("add-message",{"message": this.username + " chose foreign aid", "roomID": this.roomID});
-      socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username,
-        "blockable": true, "challengable": false});
+      socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username});
     },
     coupClick: function(){
       this.showChoose = true;
@@ -292,8 +301,11 @@ export default {
       this.showChoose = false;
       eventBus.$emit("add-message",{"message": this.username + " picked " + player + " to use "
        + this.dict[this.chosenAction] + " on", "roomID": this.roomID});
-      socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "blockable": this.chosenAction !== "COUP", 
-        "challengable": this.chosenAction !== "COUP", "fromPlayer": this.username, "toPlayer": player});
+      socket.emit("action", {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username, "toPlayer": player});
+    },
+    chooseBlock: function(role){
+      this.showChooseBlock = false;
+      eventBus.$emit("chosen-card",role);
     },
     finish: function(){
       this.body = {"id": this.roomID, "player1": this.username, "player2": this.chosenPlayer,
@@ -307,11 +319,12 @@ export default {
       });
     },
     block: function(){
+      this.clearModal();
       this.blocking = true;
-      this.blockingPlayer = true;
+      this.showChooseBlock = true;
       this.chosenAction = this.currentAction.action;
       socket.emit("block",{"roomID": this.roomID, "player": this.username});
-      eventBus.$emit("add-message", {"message": this.winner + " is blocking", "roomID": this.roomID});
+      eventBus.$emit("add-message", {"message": this.username + " is blocking", "roomID": this.roomID});
     },
     challenge: function(){
       this.clearModal();
@@ -321,15 +334,20 @@ export default {
       "fromPlayer": this.username, "toPlayer": this.currentAction.fromPlayer});
     },
     handleOk: function(){
+      this.clearModal();
       if(this.currentAction.blockedAction === undefined){ // allow move
-        eventBus.$emit("add-message", {"message": this.username + " did nothing", "roomID": this.roomID});
-        this.clearModal();
+        eventBus.$emit("add-message", {"message": this.username + " did nothing", "roomID": this.roomID}); // if original player
         if(this.currentAction.action === "N" && this.username === this.currentAction.toPlayer){ // if oked assassin on theirself
           socket.emit("block",{"roomID": this.roomID})
           this.chosenAction = "N";
           this.numKill = 1;
           this.showKill = true; // for assassin
           var audio = new Audio(require('./media/nani.mp3'))
+          audio.play();
+        }else if(this.currentAction.action === "T" && this.username === this.currentAction.toPlayer){ // if oked assassin on theirself
+          socket.emit("block",{"roomID": this.roomID})
+          // go ahead to original player
+          audio = new Audio(require('./media/nani.mp3'))
           audio.play();
         }else{
           socket.emit("ok", {"roomID": this.roomID, "player": this.currentAction.fromPlayer, "okPlayer": this.username});
@@ -356,15 +374,16 @@ export default {
           str += this.dict[this.gameInfo.myCards[i]] + " "
         }
       }
+      let body = {"id": this.roomID, "action": this.chosenAction, "cards": chosenCards}
       if(this.chosenAction === "A2"){
         eventBus.$emit("add-message", {"message": this.username + " put 2 cards back into the deck", "roomID": this.roomID});
+        body.player1 = this.username;
       }else{
         eventBus.$emit("add-message", {"message": str + "to die", "roomID": this.roomID});
+        body.player1 = this.currentAction.fromPlayer;
+        body.player2 = this.username;
       }
-      this.body = {"id": this.roomID, "player1": this.currentAction.fromPlayer,
-        "player2": this.username,
-        "action": this.chosenAction, "cards": chosenCards}
-      axios.put('/api/coup/move', this.body)
+      axios.put('/api/coup/move', body)
       .then((req) => {
         this.clear();
         if(req.data !== false){

@@ -119,6 +119,7 @@ export default {
     });
 
     eventBus.$on("game-info", (req) => {
+      this.blocking = false;
       this.loading = false;
       this.okedPlayers = [];
       this.deadPlayers = req.deadPlayers;
@@ -134,7 +135,7 @@ export default {
     })
 
     socket.on("block",(data)=>{
-      this.block = data.player;
+      this.blocking = data.player;
     })
 
     socket.on("loading", () => {

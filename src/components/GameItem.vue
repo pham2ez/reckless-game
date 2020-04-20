@@ -5,7 +5,7 @@
         ID: {{roomID}}  <br/>
         Players: {{players}}
       </b-card-text>
-      <b-button variant="primary" @click="join">Join</b-button>
+      <b-button variant="primary" v-show="players.length < 6" @click="join">Join</b-button>
     </b-card>
   </div>
 </template>

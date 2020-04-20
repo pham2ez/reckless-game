@@ -150,9 +150,7 @@ router.post('/signin', (req, res) => {
 router.get('/signedin', (req, res) => {
   let username = req.session.username;
   if(username === undefined){
-    res.status(400).json({
-      error: `Not logged in.`,
-    }).end();
+    res.status(200).json(false).end();
   }else{
     let user = Users.findUser(username);
     if(user.roomID !== null){

@@ -4,7 +4,7 @@ const router = express.Router();
 
 const Coup = require('../models/Coup');
 /**
- * Get my game info.
+ * Get my current game info.
  * @name GET/api/coup/
  */
 router.get('/info/:id', (req, res) => {
@@ -25,7 +25,7 @@ router.get('/next/:id', (req, res) => {
  * @name PUT/api/coup/move
  */
 router.put('/move', (req, res) => {
-  res.status(200).json(Coup.doMove(req.body.id, req.body.player1, req.body.player2, req.body.action, req.body.cards)).end();
+  res.status(200).json(Coup.nextState(req.body)).end();
 });
 
 module.exports = router;

@@ -65,7 +65,7 @@ module.exports = function (io) {
       });
 
       socket.on('block', function (data) { // notify everyone someone blocked
-        io.in(data.roomID).emit('block', data);
+        socket.to(data.roomID).emit('block', data);
       });
 
       socket.on('challenge', function (data) { // notify everyone someone challenged

@@ -93,14 +93,15 @@ export default {
   created: function() {
     axios.get('/api/user/signedin') // check is user is signed in or not
     .then((res)=>{
-      eventBus.$emit("signin-success", res.data);
-      if(res.data.gameInfo !== undefined){
-        this.roomID = res.data.roomInfo.id;
-        this.inRoom = true;
+      if(res.data !== false){
+        eventBus.$emit("signin-success", res.data);
+        if(res.data.gameInfo !== undefined){
+          this.roomID = res.data.roomInfo.id;
+          this.inRoom = true;
+        }
+      }else{
+        eventBus.$emit("signin-success", {"username": null})
       }
-    })
-    .catch(()=>{
-      eventBus.$emit("signin-success", {"username": null})
     });
 
     eventBus.$on("joined-room", (req) => {

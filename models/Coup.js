@@ -25,6 +25,7 @@ class Coup {
       let index = game.players.indexOf(winner);
       game.playerIndex = index === -1? 0: index;
       game.players = players; // in case someone leaves/someone new comes
+      game.state = "MOVE"
       game.coinDict = coinDict;
       game.courtList = courtList;
       game.deadPlayers = [];
@@ -32,7 +33,9 @@ class Coup {
       game.playersCards = {}
       this.distributeCards(game);
     }else{
-      game = { ID, players, "coinDict": coinDict, "courtList": courtList, "playersCards": {}, "playerIndex": 0, "deadPlayers": [], "deadCards": {"N":0,"A1":0,"T":0,"C":0,"D":0}};
+      game = { ID, players, "currentState": {"state": "MOVE", "action": "", "fromPlayer": "", "toPlayer": ""},
+        "oks": 0, "coinDict": coinDict, "courtList": courtList,
+        "playersCards": {}, "playerIndex": 0, "deadPlayers": [], "deadCards": {"N":0,"A1":0,"T":0,"C":0,"D":0}};
       this.distributeCards(game);
       data.push(game);
     }
@@ -49,6 +52,7 @@ class Coup {
     truncated.myCards = game.playersCards[player];
     truncated.playerIndex = game.playerIndex;
     truncated.numCards = {};
+    truncated.currentState = game.currentState;
     for(const i of game.players){
       truncated.numCards[i] = game.playersCards[i].length;
     }
@@ -108,10 +112,78 @@ class Coup {
   }
 
   // GAME ACTIONS
+  static nextState(req){
+    let game = this.findGame(req.roomID);
+    let currentState = game.currentState;
+    if(currentState.state === "MOVE"){
+      if(req.action === "IN" || req.action === "A2"){
+        this.doMove(game, req.fromPlayer, undefined, req.action, req.cards);
+      }else if(req.action === "COUP"){
+        game.currentState = {"state": "KILL", "action": req.action,
+          "fromPlayer": req.fromPlayer, "toPlayer": req.toPlayer};
+      }else if(req.action === "T" || req.action === "N"){
+        game.currentState = {"state": "CHOOSE", "action": req.action,
+          "fromPlayer": req.fromPlayer, "toPlayer": req.toPlayer};
+      }else{
+        game.currentState = {"state": "CHOOSE", "action": req.action,
+          "fromPlayer": req.fromPlayer, "toPlayer": ""};
+      }
+    }else if(currentState.state === "CHOOSE"){
+      if(req.action === "OK"){
+        let action = currentState.action;
+        if(action === "FA" || action === "D" || action === "A1"){
+          game.oks++;
+          if(game.oks !== (game.players.length-1 - game.deadPlayers.length)){
+            return false;
+          }else{
+            game.oks = 0;
+            this.doMove(game, currentState.fromPlayer, undefined, action, undefined);
+            currentState.state = "MOVE";
+          }
+        }else{
+          if(req.fromPlayer !== stcurrentStateate.toPlayer){
+            return false;
+          }else{
+            if(action === "T"){
+              this.doMove(game, currentState.fromPlayer, currentState.toPlayer, action, undefined);
+              currentState.state = "MOVE";
+            }else if(action === "N"){
+
+            }
+          }
+        }
+      }else if(req.state === "BLOCK"){
+        currentState.blockedAction = req.action;
+        if(currentState.action === "D"){
+          currentState.toPlayer = req.fromPlayer;
+        }
+      }else if(req.state === "CHALLENGE"){
+        let player = currentState.blockedAction === undefined? currentState.toPlayer: currentState.fromPlayer;
+        let action = currentState.blockedAction === undefined? currentState.action: currentState.blockedAction;
+        if(game.playersCards[player].includes(action)){
+          currentState.state = "KILL";
+          currentState.loser = req.player; // can be current player or blocking player
+        }else{
+          currentState.state = "KILL";
+          currentState.loser = player;
+        }
+      }
+    }else if(currentState.state === "KILL"){
+      if(currentState.loser !== undefined){ // exists challenge result
+        if(currentState.loser !== currentState.fromPlayer){
+          this.doMove(game, currentState.fromPlayer, currentState.toPlayer, currentState.action, req.cards); 
+        }
+        this.doMove(game, currentState.loser, undefined, "BS", req.cards); 
+      }else{ // coup, assassin loses money
+        this.doMove(game, currentState.fromPlayer, currentState.toPlayer, currentState.action, req.cards); 
+      }
+      currentState.state = "MOVE";
+    }
+    return true;
+  }
 
   // do after we check if other player wants to block or wants to bs this player
-  static doMove(ID, player1, player2, action, kill){
-    let game = this.findGame(ID);
+  static doMove(game, player1, player2, action, kill){
     if(player1 in game.deadPlayers)
       return;
     if(action === "IN"){
@@ -121,10 +193,9 @@ class Coup {
     }else if(action === "COUP"){
       this.addCoins(game,player1,-7);
       this.killAction(game, player2, kill[0])
-    }else if(action === "BS1" || action === "BS2"){
-      this.killAction(game, player2, kill[0])
-      if(kill[1] !== undefined){
-        this.killAction(game, player2, kill[1])
+    }else if(action === "BS"){
+      for(let i = 0; i < kill.length; i++){
+        this.killAction(game, player2, kill[i])
       }
     }else if(action === "N"){
       this.addCoins(game,player1,-3);
@@ -132,8 +203,8 @@ class Coup {
     }else if(action === "A1"){
       this.dealCards(game, player1, 2);
     }else if(action === "A2"){
-      this.popCardOutHand(game, player2,kill[0]);
-      this.popCardOutHand(game, player2,kill[1]);
+      this.popCardOutHand(game, player1,kill[0]);
+      this.popCardOutHand(game, player1,kill[1]);
       game.courtList.push(kill[0]);
       game.courtList.push(kill[1]);
       this.shuffleDeck(game.courtList);
@@ -142,18 +213,13 @@ class Coup {
     }else if(action === "T"){
       this.addCoins(game,player1,2);
       this.addCoins(game,player2,-2);
-    }else if(action === "EX"){
-      this.popCardOutHand(game, player1, kill[0]);
-      game.playersCards[player1].push(game.courtList.shift());
-      game.courtList.push(kill[0]);
-      this.shuffleDeck(game.courtList);
     }
     if(game.deadPlayers.length === game.players.length - 1){
       let winner = game.players.filter(player => !game.deadPlayers.includes(player))[0];
       let index = game.players.indexOf(winner);
       return game.players[index];
     }
-    if(action !== "A1" && action != "BS1"){
+    if(action !== "A1" && action != "BS"){
       do{
         game.playerIndex = (game.playerIndex + 1) % game.players.length;
       }while(game.deadPlayers.includes(game.players[game.playerIndex]))
