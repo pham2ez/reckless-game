@@ -112,78 +112,12 @@ class Coup {
   }
 
   // GAME ACTIONS
-  static nextState(req){
-    let game = this.findGame(req.roomID);
-    let currentState = game.currentState;
-    if(currentState.state === "MOVE"){
-      if(req.action === "IN" || req.action === "A2"){
-        this.doMove(game, req.fromPlayer, undefined, req.action, req.cards);
-      }else if(req.action === "COUP"){
-        game.currentState = {"state": "KILL", "action": req.action,
-          "fromPlayer": req.fromPlayer, "toPlayer": req.toPlayer};
-      }else if(req.action === "T" || req.action === "N"){
-        game.currentState = {"state": "CHOOSE", "action": req.action,
-          "fromPlayer": req.fromPlayer, "toPlayer": req.toPlayer};
-      }else{
-        game.currentState = {"state": "CHOOSE", "action": req.action,
-          "fromPlayer": req.fromPlayer, "toPlayer": ""};
-      }
-    }else if(currentState.state === "CHOOSE"){
-      if(req.action === "OK"){
-        let action = currentState.action;
-        if(action === "FA" || action === "D" || action === "A1"){
-          game.oks++;
-          if(game.oks !== (game.players.length-1 - game.deadPlayers.length)){
-            return false;
-          }else{
-            game.oks = 0;
-            this.doMove(game, currentState.fromPlayer, undefined, action, undefined);
-            currentState.state = "MOVE";
-          }
-        }else{
-          if(req.fromPlayer !== stcurrentStateate.toPlayer){
-            return false;
-          }else{
-            if(action === "T"){
-              this.doMove(game, currentState.fromPlayer, currentState.toPlayer, action, undefined);
-              currentState.state = "MOVE";
-            }else if(action === "N"){
-
-            }
-          }
-        }
-      }else if(req.state === "BLOCK"){
-        currentState.blockedAction = req.action;
-        if(currentState.action === "D"){
-          currentState.toPlayer = req.fromPlayer;
-        }
-      }else if(req.state === "CHALLENGE"){
-        let player = currentState.blockedAction === undefined? currentState.toPlayer: currentState.fromPlayer;
-        let action = currentState.blockedAction === undefined? currentState.action: currentState.blockedAction;
-        if(game.playersCards[player].includes(action)){
-          currentState.state = "KILL";
-          currentState.loser = req.player; // can be current player or blocking player
-        }else{
-          currentState.state = "KILL";
-          currentState.loser = player;
-        }
-      }
-    }else if(currentState.state === "KILL"){
-      if(currentState.loser !== undefined){ // exists challenge result
-        if(currentState.loser !== currentState.fromPlayer){
-          this.doMove(game, currentState.fromPlayer, currentState.toPlayer, currentState.action, req.cards); 
-        }
-        this.doMove(game, currentState.loser, undefined, "BS", req.cards); 
-      }else{ // coup, assassin loses money
-        this.doMove(game, currentState.fromPlayer, currentState.toPlayer, currentState.action, req.cards); 
-      }
-      currentState.state = "MOVE";
-    }
-    return true;
+  static checkpoint(req){
   }
 
   // do after we check if other player wants to block or wants to bs this player
-  static doMove(game, player1, player2, action, kill){
+  static doMove(id, player1, player2, action, kill){
+    let game = this.findGame(id);
     if(player1 in game.deadPlayers)
       return;
     if(action === "IN"){
