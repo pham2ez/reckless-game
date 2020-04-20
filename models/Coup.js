@@ -25,7 +25,7 @@ class Coup {
       let index = game.players.indexOf(winner);
       game.playerIndex = index === -1? 0: index;
       game.players = players; // in case someone leaves/someone new comes
-      game.state = "MOVE"
+      game.checkpoint.state = "MOVE"
       game.coinDict = coinDict;
       game.courtList = courtList;
       game.deadPlayers = [];
@@ -33,7 +33,7 @@ class Coup {
       game.playersCards = {}
       this.distributeCards(game);
     }else{
-      game = { ID, players, "currentState": {"state": "MOVE", "action": "", "fromPlayer": "", "toPlayer": ""},
+      game = { ID, players, "checkpoint": {"state": "MOVE", "action": "", "fromPlayer": "", "toPlayer": ""},
         "oks": 0, "coinDict": coinDict, "courtList": courtList,
         "playersCards": {}, "playerIndex": 0, "deadPlayers": [], "deadCards": {"N":0,"A1":0,"T":0,"C":0,"D":0}};
       this.distributeCards(game);
@@ -52,7 +52,7 @@ class Coup {
     truncated.myCards = game.playersCards[player];
     truncated.playerIndex = game.playerIndex;
     truncated.numCards = {};
-    truncated.currentState = game.currentState;
+    truncated.checkpoint = game.checkpoint;
     for(const i of game.players){
       truncated.numCards[i] = game.playersCards[i].length;
     }

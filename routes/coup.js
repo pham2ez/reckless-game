@@ -21,11 +21,20 @@ router.get('/next/:id', (req, res) => {
 });
 
 /**
+ * Update checkpoint
+ * @name GET/api/coup/update
+ */
+router.put('/update/:id', (req, res) => {
+  Coup.checkpoint(req);
+  res.status(200).json(true).end();
+});
+
+/**
  * Player makes a move.
  * @name PUT/api/coup/move
  */
 router.put('/move', (req, res) => {
-  res.status(200).json(Coup.nextState(req.body)).end();
+  res.status(200).json(Coup.doMove(req.body.id, req.body.player1, req.body.player2, req.body.action, req.body.cards)).end();
 });
 
 module.exports = router;
