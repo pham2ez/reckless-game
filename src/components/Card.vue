@@ -61,11 +61,11 @@ export default {
       if(this.role === "A1"){
         return require('./media/Ambassador.jpg');
       }else if(this.role === "C"){
-        return require('./media/Contessa.png');
+        return require('./media/Contessa.jpg');
       }else if(this.role === "D"){
-        return require('./media/Duke.png');
+        return require('./media/Duke.jpg');
       }else if(this.role === "N"){
-        return require('./media/Assassin.png');
+        return require('./media/Assassin.jpg');
       }else if (this.role === "T"){
         return require('./media/Captain.jpg');
       }

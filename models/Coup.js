@@ -113,9 +113,8 @@ class Coup {
 
   // GAME ACTIONS
   static checkpoint(req,id){
-    console.log(req);
     let game = this.findGame(id);
-    if(req.state === "MOVE"){
+    if(req.state === "MOVE"){ // change to appropriate state, save action and player
       game.checkpoint.action = req.action;
       game.checkpoint.player = req.player;
       game.checkpoint.toPlayer = req.toPlayer;
@@ -130,12 +129,12 @@ class Coup {
       }
     }else if(req.state === "CHOOSE"){
       game.checkpoint.responded.push(req.player);
-    }else if(req.state === "FINISH"){
+    }else if(req.state === "FINISH"){ // move done, check if challenge loser needs to pick card to kill
       game.checkpoint.player = game.checkpoint.action !== "A1"? undefined: game.checkpoint.player;
       game.checkpoint.completed = game.checkpoint.loser === undefined;
       game.checkpoint.state = game.checkpoint.completed && game.checkpoint.action !== "A1"? "WAIT": "KILL";
       game.checkpoint.action = game.checkpoint.action !== "A1"? game.checkpoint.action: "A2";
-    }else if(req.state === "BLOCK"){
+    }else if(req.state === "BLOCK"){ // another round of choosing whether or not to challenge
       game.checkpoint.responded = [];
       game.checkpoint.blockedAction = req.action;
       game.checkpoint.toPlayer = req.player;
@@ -146,22 +145,20 @@ class Coup {
       if(game.checkpoint.loser === game.checkpoint.player){
         game.checkpoint.player = undefined;
       }
-    }else if(req.state === "KILL"){ // challenge result
-      if(req.player === game.checkpoint.loser){ // challenge loser
+    }else if(req.state === "KILL"){
+      if(req.player === game.checkpoint.loser){ // challenge loser chose card
         game.checkpoint.loser = undefined;
         game.checkpoint.completed = game.checkpoint.player === undefined;
-      }else if(req.player === game.checkpoint.player){ // ambassador fin
+      }else if(req.player === game.checkpoint.player){ // ambassador needs to finish
         game.checkpoint.player = undefined;
         game.checkpoint.completed = game.checkpoint.loser === undefined;
-      }else if(req.player === game.checkpoint.toPlayer){ // assassin
+      }else if(req.player === game.checkpoint.toPlayer){ // assassin/coup
         game.checkpoint.completed = true;
       }
       game.checkpoint.state = game.checkpoint.completed? "WAIT": "KILL";
     }
-    console.log(game.checkpoint);
   }
 
-  // do after we check if other player wants to block or wants to bs this player
   static doMove(id, player1, player2, action, kill){
     let game = this.findGame(id);
     if(player1 in game.deadPlayers)

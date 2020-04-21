@@ -1,12 +1,12 @@
 <template>
   <div class="coup">
     <div class="cards" v-if="gameInfo !== null">
-      <b-button variant="outline-dark" v-b-modal="'info'">Game Info</b-button>
+      <b-button variant="outline-dark" v-b-modal="'info'" @click="playSound("INFO")">Game Info</b-button>
       <Info title="My Cards" :textArray="myCardsArray"/>
       <Info title="Dead Cards" :textArray="deadCardsArray"/>
       <!-- The modal -->
       <b-modal id="info" size="lg" title="Coup Actions" hide-footer>
-        <b-img :src="require('./media/rules.png')" fluid-grow></b-img>
+        <b-img :src="require('./media/rules.jpg')" fluid-grow></b-img>
       </b-modal>
     </div>
     <div class="actions" v-show="currentPlayer && chosenAction === null">
@@ -35,7 +35,7 @@
               v-bind:key="player"
               v-show="player !== username && ((chosenAction === 'T' && gameInfo.coinDict[player] >= 2) || chosenAction === 'N' || chosenAction === 'COUP')"
               @click="choose(player)">{{player}}</b-button>
-            <b-button @click="back">Back</b-button>
+            <b-button variant="outline-dark" @click="back">Back</b-button>
           </div>
         </b-modal>
 
@@ -56,10 +56,10 @@
           </div>
         </b-modal>
         
-        <b-modal :title="'Choose ' + numKill + ' card(s) to die'" v-if="gameInfo !== null" :visible="showKill" no-close-on-esc no-close-on-backdrop hide-header-close hide-footer>
+        <b-modal :title="'Choose ' + numKill + ' card(s) to give up'" v-if="gameInfo !== null" :visible="showKill" no-close-on-esc no-close-on-backdrop hide-header-close hide-footer>
           <div class="actions">
             <b-button v-for="i in gameInfo.myCards.length"
-              variant="danger"
+              :variant="inKill[i-1]? 'danger': 'warning'"
               v-bind:key="gameInfo.myCards[i-1] + i"
               :pressed.sync="inKill[i-1]"
               @click="kill(i-1)">
@@ -129,6 +129,11 @@ export default {
 
     socket.on("action", (data) => {
       this.currentAction = data;
+      if(this.currentAction.blockedAction !== undefined && this.currentAction.fromPlayer){
+        this.playSound("BLOCK");
+      }else{
+        this.playSound("MOVE");
+      }
       if(data.toPlayer === this.username && data.action === "COUP"){
         this.chosenAction = "COUP";
         this.numKill = 1;
@@ -142,6 +147,7 @@ export default {
 
     socket.on("challenge",(req)=>{
       if(this.username === req.toPlayer && this.gameInfo.myCards.includes(req.action)){
+        this.playSound("WINNER");
         axios.put('/api/coup/update/'+this.roomID, {"state": "CHALLENGE", "player": req.fromPlayer});
         let kill = this.chosenAction === "N"? 2: 1;
         socket.emit("challengeResults",{"roomID": this.roomID, "loser": req.fromPlayer, "kill": kill});
@@ -151,7 +157,9 @@ export default {
           this.finish();
         }
       }else if(this.username === req.toPlayer && !this.gameInfo.myCards.includes(req.action)){
+        this.playSound("LOSER");
         axios.put('/api/coup/update/'+this.roomID, {"state": "CHALLENGE", "player": req.toPlayer});
+        socket.emit("challengeResults",{"roomID": this.roomID, "winner": req.fromPlayer});
         eventBus.$emit("add-message",{"message": this.username + " did not have " + 
           this.dict[req.action], "roomID": this.roomID});
         this.chosenAction = "BS2";
@@ -164,9 +172,12 @@ export default {
 
     socket.on("challengeResults",(req)=>{
       if(this.username === req.loser){
+        this.playSound("LOSER");
         this.chosenAction = "BS1";
         this.showKill = true; // for challenge
         this.numKill = req.kill > this.gameInfo.myCards.length? this.gameInfo.myCards.length: req.kill;
+      }else if(this.username === req.winner){
+        this.playSound("WINNER");
       }
     });
 
@@ -177,8 +188,6 @@ export default {
     socket.on("ok",(req)=>{
       if(this.username === req.player){
         this.oks++;
-// eslint-disable-next-line no-console
-console.log(this.oks);
         if((this.chosenAction === "T" || this.chosenAction === "N") && req.okPlayer === this.chosenPlayer){
           this.finish();
         }else if(this.oks === (this.players.length-1 - this.gameInfo.deadPlayers.length)){
@@ -274,6 +283,7 @@ console.log(this.oks);
     back: function(){
       this.chosenAction = null;
       this.currentPlayer = true;
+      this.showChoose = false;
     },
     income: function(){
       this.chosenAction = "IN";
@@ -376,6 +386,7 @@ console.log(this.oks);
         eventBus.$emit("add-message", {"message": this.username + " put 2 cards back into the deck", "roomID": this.roomID});
         body.player1 = this.username;
       }else{
+        this.playSound("CARD");
         eventBus.$emit("add-message", {"message": str + "to die", "roomID": this.roomID});
         body.player1 = this.currentAction.fromPlayer;
         body.player2 = this.username;
@@ -416,12 +427,8 @@ console.log(this.oks);
       }
       this.deadCardsArray = array;
     },
-    currentState: function(){
-      
+    currentState: function(){ // recovery function
       let checkpoint = this.gameInfo.checkpoint;
-// eslint-disable-next-line no-console
-console.log(checkpoint);
-
       this.currentAction = {"roomID": this.roomID, "fromPlayer": checkpoint.player, "toPlayer": checkpoint.toPlayer};
       if(checkpoint.state === "CHOOSE"){
         if(checkpoint.responded.includes(this.username)){
@@ -458,6 +465,54 @@ console.log(checkpoint);
           this.numKill = 2;
         }
       }
+    },
+    playSound: function(case){
+      var audio;
+      if(case === "INFO"){
+        let prob = Math.random();
+        if(prob <= .1){
+          audio = new Audio(require('./media/rick.mp3'));
+        }else if(prob <= .45){
+          audio = new Audio(require('./media/myTralala.mp3'));
+        }else{
+          audio = new Audio(require('./media/trololo.mp3'));
+        }
+      }else if(case === "CARD"){
+        let prob = Math.random();
+        if(prob <= .33){
+          audio = new Audio(require('./media/minecraftHurt.mp3'));
+        }else if(prob <= .66){
+          audio = new Audio(require('./media/robloxHurt.mp3'));
+        }else{
+          audio = new Audio(require('./media/bruh.mp3'));
+        }
+      }else if(case === "BLOCK"){
+        audio = new Audio(require('./media/surpriseMofo.mp3'));
+      }else if(case === "MOVE"){
+        audio = new Audio(require('./media/mgsAlert.mp3'));
+      }else if(case === "WINNER"){ // of challenge
+        let prob = Math.random();
+        if(prob <= .33){
+          audio = new Audio(require('./media/airhorn.mp3'));
+        }else if(prob <= .66){
+          audio = new Audio(require('./media/yeet.mp3'));
+        }else{
+          audio = new Audio(require('./media/wow.mp3'));
+        }
+      }else if(case === "LOSER"){ // of challenge
+        let prob = Math.random();
+        if(prob <= .25){
+          audio = new Audio(require('./media/allahu.mp3'));
+        }else if(prob <= .5){
+          audio = new Audio(require('./media/omg1.mp3'));
+        }else if(prob <= .75){
+          audio = new Audio(require('./media/youSuck.mp3'));
+        }else{
+          audio = new Audio(require('./media/omg2.mp3'));
+        }
+      }
+      audio.volume(.5);
+      audio.play();
     }
   }
 }

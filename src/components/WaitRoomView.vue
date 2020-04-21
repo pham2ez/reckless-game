@@ -91,6 +91,11 @@ export default {
 
     socket.on("winner",(data)=>{
       this.winner = data;
+      if(data === this.username){
+        this.playSound("WINNER");
+      }else{
+        this.playSound("LOSER");
+      }
     });
 
     eventBus.$on("joined-room", (res) => {
@@ -203,6 +208,42 @@ export default {
         socket.emit("ended", {"roomID": this.roomID});
         this.inGame = false;
       });
+    },
+    playSound: function(case){
+      var audio;
+      if(case === "WINNER"){ // of game
+        let prob = Math.random();
+        if(prob <= .2){
+          audio = new Audio(require('./media/falconPunch.mp3'));
+        }else if(prob <= .4){
+          audio = new Audio(require('./media/finishHim.mp3'));
+        }else if(prob <= .6){
+          audio = new Audio(require('./media/pentakill.mp3'));
+        }else if(prob <= .8){
+          audio = new Audio(require('./media/victory.mp3'));
+        }else{
+          audio = new Audio(require('./media/kamehameha.mp3'));
+        }
+      }else if(case === "LOSER"){ // of game
+        let prob = Math.random();
+        if(prob <= .15){
+          audio = new Audio(require('./media/smashDeath.mp3'));
+        }else if(prob <= .3){
+          audio = new Audio(require('./media/snake.mp3'));
+        }else if(prob <= .45){
+          audio = new Audio(require('./media/tbdJoJo.mp3'));
+        }else if(prob <= .6){
+          audio = new Audio(require('./media/fatality.mp3'));
+        }else if(prob <= .75){
+          audio = new Audio(require('./media/defeat.mp3'));
+        }else if(prob <= .9){
+          audio = new Audio(require('./media/noob.mp3'));
+        }else{
+          audio = new Audio(require('./media/omae.mp3'));
+        }
+      }
+      audio.volume(.75);
+      audio.play();
     }
   }
 }
