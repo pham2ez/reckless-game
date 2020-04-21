@@ -1,7 +1,7 @@
 <template>
   <div class="coup">
     <div class="cards" v-if="gameInfo !== null">
-      <b-button variant="outline-dark" v-b-modal="'info'" @click="playSound("INFO")">Game Info</b-button>
+      <b-button variant="outline-dark" v-b-modal="'info'" @click="playSound('INFO')">Game Info</b-button>
       <Info title="My Cards" :textArray="myCardsArray"/>
       <Info title="Dead Cards" :textArray="deadCardsArray"/>
       <!-- The modal -->
@@ -466,9 +466,9 @@ export default {
         }
       }
     },
-    playSound: function(case){
+    playSound: function(situation){
       var audio;
-      if(case === "INFO"){
+      if(situation === "INFO"){
         let prob = Math.random();
         if(prob <= .1){
           audio = new Audio(require('./media/rick.mp3'));
@@ -477,7 +477,7 @@ export default {
         }else{
           audio = new Audio(require('./media/trololo.mp3'));
         }
-      }else if(case === "CARD"){
+      }else if(situation === "CARD"){
         let prob = Math.random();
         if(prob <= .33){
           audio = new Audio(require('./media/minecraftHurt.mp3'));
@@ -486,11 +486,11 @@ export default {
         }else{
           audio = new Audio(require('./media/bruh.mp3'));
         }
-      }else if(case === "BLOCK"){
+      }else if(situation === "BLOCK"){
         audio = new Audio(require('./media/surpriseMofo.mp3'));
-      }else if(case === "MOVE"){
+      }else if(situation === "MOVE"){
         audio = new Audio(require('./media/mgsAlert.mp3'));
-      }else if(case === "WINNER"){ // of challenge
+      }else if(situation === "WINNER"){ // of challenge
         let prob = Math.random();
         if(prob <= .33){
           audio = new Audio(require('./media/airhorn.mp3'));
@@ -499,7 +499,7 @@ export default {
         }else{
           audio = new Audio(require('./media/wow.mp3'));
         }
-      }else if(case === "LOSER"){ // of challenge
+      }else if(situation === "LOSER"){ // of challenge
         let prob = Math.random();
         if(prob <= .25){
           audio = new Audio(require('./media/allahu.mp3'));

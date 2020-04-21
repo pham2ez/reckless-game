@@ -209,9 +209,9 @@ export default {
         this.inGame = false;
       });
     },
-    playSound: function(case){
+    playSound: function(situation){
       var audio;
-      if(case === "WINNER"){ // of game
+      if(situation === "WINNER"){ // of game
         let prob = Math.random();
         if(prob <= .2){
           audio = new Audio(require('./media/falconPunch.mp3'));
@@ -224,7 +224,7 @@ export default {
         }else{
           audio = new Audio(require('./media/kamehameha.mp3'));
         }
-      }else if(case === "LOSER"){ // of game
+      }else if(situation === "LOSER"){ // of game
         let prob = Math.random();
         if(prob <= .15){
           audio = new Audio(require('./media/smashDeath.mp3'));
