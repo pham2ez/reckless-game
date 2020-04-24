@@ -95,7 +95,7 @@ export default {
     .then((res)=>{
       if(res.data !== false){
         eventBus.$emit("signin-success", res.data);
-        if(res.data.gameInfo !== undefined){
+        if(res.data.roomInfo !== undefined){
           this.roomID = res.data.roomInfo.id;
           this.inRoom = true;
         }

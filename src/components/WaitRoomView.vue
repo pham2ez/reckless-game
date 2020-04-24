@@ -111,8 +111,11 @@ export default {
         this.players = res.roomInfo.players;
         this.roomID = res.roomInfo.id;
         this.roomName = res.roomInfo.roomName;
-        this.inGame = true;
-        this.loading = true;
+        if(res.gameInfo !== undefined && res.gameInfo.checkpoint.state !== "WAIT"){
+          this.inGame = true;
+          this.loading = true;
+          eventBus.$emit("in-game", res);
+        }
       }
     });
 
@@ -121,7 +124,7 @@ export default {
     });
 
     eventBus.$on("game-info", (req) => {
-      this.blocking = false;
+      this.blocking = null;
       this.loading = false;
       this.okedPlayers = [];
       this.deadPlayers = req.deadPlayers;
@@ -242,7 +245,6 @@ export default {
           audio = new Audio(require('./media/omae.mp3'));
         }
       }
-      audio.volume(.75);
       audio.play();
     }
   }

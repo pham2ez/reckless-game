@@ -194,6 +194,7 @@ class Coup {
     if(game.deadPlayers.length === game.players.length - 1){
       let winner = game.players.filter(player => !game.deadPlayers.includes(player))[0];
       let index = game.players.indexOf(winner);
+      game.checkpoint.state = "WAIT";
       return game.players[index];
     }
     if(action !== "A1" && action != "BS1"){

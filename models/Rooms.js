@@ -16,7 +16,7 @@ let Users = require('./Users.js');
  */
 class Rooms {
   static createRoom(creator, roomName) {
-    const room = {creator, roomName, "id": roomCounter.toString(), "players": [creator]};
+    const room = {creator, roomName, "id": roomCounter.toString(), "players": [creator], "inGame": false};
     Users.addToRoom(creator, roomCounter.toString());
     roomCounter++;
     data.push(room);
@@ -57,10 +57,13 @@ class Rooms {
 
   static startGame(ID, username){
     let room = this.findRoomID(ID);
+    room.inGame = true;
     Coup.startGame(ID, room.players);
   }
 
   static endGame(ID){
+    let room = this.findRoomID(ID);
+    room.inGame = false;
     Coup.endGame(ID);
   }
 }

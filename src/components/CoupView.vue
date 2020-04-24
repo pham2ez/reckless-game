@@ -197,14 +197,10 @@ export default {
       }
     });
 
-    eventBus.$on("signin-success", (res) => {
-      if(res.gameInfo !== undefined){
-        this.$nextTick(function () {
-          this.gameInfo = res.gameInfo;
-          this.gamePopu();
-          this.currentState();
-        })
-      }
+    eventBus.$on("in-game", (res) => {
+      this.gameInfo = res.gameInfo;
+      this.gamePopu();
+      this.currentState();
     });
 
     eventBus.$on("chosen-card", (req)=>{
@@ -429,6 +425,10 @@ export default {
     },
     currentState: function(){ // recovery function
       let checkpoint = this.gameInfo.checkpoint;
+      if(checkpoint.state === "WAIT"){
+        this.clear();
+        return;
+      }
       this.currentAction = {"roomID": this.roomID, "fromPlayer": checkpoint.player, "toPlayer": checkpoint.toPlayer};
       if(checkpoint.state === "CHOOSE"){
         if(checkpoint.responded.includes(this.username)){
@@ -511,7 +511,6 @@ export default {
           audio = new Audio(require('./media/omg2.mp3'));
         }
       }
-      audio.volume(.5);
       audio.play();
     }
   }

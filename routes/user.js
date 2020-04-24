@@ -154,8 +154,10 @@ router.get('/signedin', (req, res) => {
   }else{
     let user = Users.findUser(username);
     if(user.roomID !== null){
-      res.status(200).json({"username": user.username, "roomInfo": Rooms.findRoomID(user.roomID),
-      "gameInfo": Coup.truncGame(user.roomID, user.username)}).end();
+      let room = Rooms.findRoomID(user.roomID);
+      let game = room.inGame? Coup.truncGame(user.roomID, user.username): undefined;
+      res.status(200).json({"username": user.username, "roomInfo": room,
+      "gameInfo": game}).end();
     }else{
       res.status(200).json({"username": user.username}).end();
     }
