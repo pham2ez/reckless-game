@@ -10,7 +10,7 @@
           <label for='username'>Username</label>
           <input id='username' type="text" v-model="username" :placeholder="[[ userPrompt ]]"/>
           <label for='password'>Password</label>
-          <input id='password' type="text" v-model="password" :placeholder="[[ passPrompt ]]"/>
+          <input id='password' type="password" v-model="password" :placeholder="[[ passPrompt ]]"/>
           <input type='submit' v-bind:value="title">
       </div>
     </form>

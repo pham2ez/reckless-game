@@ -1,4 +1,5 @@
 let data = [];
+let passwords = {};
 let roomCounter = 0;
 let Coup = require('./Coup.js');
 let Users = require('./Users.js');
@@ -15,16 +16,21 @@ let Users = require('./Users.js');
  * Stores all Rooms and their information.
  */
 class Rooms {
-  static createRoom(creator, roomName) {
-    const room = {creator, roomName, "id": roomCounter.toString(), "players": [creator], "inGame": false};
+  static createRoom(creator, roomName, password) {
+    const room = {creator, roomName, existsPassword: password != "", "id": roomCounter.toString(), "players": [creator], "inGame": false};
+    passwords[room.id] = password;
     Users.addToRoom(creator, roomCounter.toString());
     roomCounter++;
     data.push(room);
     return room;
   }
 
+  static checkPassword(roomID, passwordAttempt){
+    return passwords[roomID] === passwordAttempt;
+  }
+
   static allRooms() {
-    return data
+    return data;
   }
 
   static findRoomID(ID) {
@@ -51,6 +57,7 @@ class Rooms {
     }
     if(room.players.length === 0){
       data = data.filter(room => room.id !== ID);
+      delete passwords[room.id];
     }
     return room;
   }

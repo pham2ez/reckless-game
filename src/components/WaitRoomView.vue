@@ -28,7 +28,10 @@
     <div v-show="inGame">
       <b-modal :visible="inGame && winner !== ''" no-close-on-esc no-close-on-backdrop hide-header hide-footer>
         The winner is {{winner.winner}}.
-        <b-button v-if="creator===username" @click="end">End</b-button>
+        <br>
+        <div class="actions">
+          <b-button v-if="creator===username" @click="end">End Game</b-button>
+        </div>
       </b-modal>
     </div>
 
@@ -68,6 +71,7 @@ export default {
       coinDict: {},
       playerIndex: 0,
       inGame: false,
+      funMode: false,
       winner: "",
       blocking: "",
       
@@ -111,7 +115,7 @@ export default {
         this.players = res.roomInfo.players;
         this.roomID = res.roomInfo.id;
         this.roomName = res.roomInfo.roomName;
-        if(res.gameInfo !== undefined && res.gameInfo.checkpoint.state !== "WAIT"){
+        if(res.gameInfo !== undefined && res.gameInfo.checkpoint.state !== "ROOM"){
           this.inGame = true;
           this.loading = true;
           eventBus.$emit("in-game", res);
@@ -198,6 +202,7 @@ export default {
       this.loading = true;
       socket.emit("loading", {"roomID":this.roomID});
       eventBus.$emit("add-message", {"message": "Game started", "roomID": this.roomID});
+      eventBus.$emit("game-status", {"status": true});
       axios.put('/api/room/start/'+this.roomID, {})
       .then(() => {
         socket.emit("getInfo", {"roomID": this.roomID});
@@ -208,11 +213,15 @@ export default {
       .then(() => {
         this.clear();
         eventBus.$emit("add-message", {"message": "Game ended", "roomID": this.roomID});
+        eventBus.$emit("game-status", {"status": false});
         socket.emit("ended", {"roomID": this.roomID});
         this.inGame = false;
       });
     },
     playSound: function(situation){
+      if(!this.funMode){
+        return;
+      }
       var audio;
       if(situation === "WINNER"){ // of game
         let prob = Math.random();

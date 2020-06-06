@@ -5,7 +5,9 @@
       v-bind:key="game.id"
       v-bind:roomName="game.roomName"
       v-bind:roomID="game.id"
-      v-bind:players="game.players"/>
+      v-bind:players="game.players"
+      v-bind:inGame="game.inGame"
+      v-bind:existsPassword="game.existsPassword"/>
   </div>
 </template>
 

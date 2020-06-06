@@ -55,6 +55,12 @@
             <b-button @click="handleOk">Do Nothing</b-button>
           </div>
         </b-modal>
+
+        <b-modal :title="'You have been overthrown'" :visible="dead" no-close-on-esc no-close-on-backdrop hide-footer hide-header-close>
+          <div class="actions">
+            <b-button @click="instaKill">Accept Defeat</b-button>
+          </div>
+        </b-modal>
         
         <b-modal :title="'Choose ' + numKill + ' card(s) to give up'" v-if="gameInfo !== null" :visible="showKill" no-close-on-esc no-close-on-backdrop hide-header-close hide-footer>
           <div class="actions">
@@ -88,6 +94,8 @@ export default {
       chosenPlayer: null,
       currentAction: null,
       blocking: false,
+      dead: false,
+      funMode: false,
 
       currentPlayer: false,
 
@@ -137,7 +145,7 @@ export default {
       if(data.toPlayer === this.username && data.action === "COUP"){
         this.chosenAction = "COUP";
         this.numKill = 1;
-        this.showKill = true;
+        this.checkKill();
         return;
       }
       this.show = true;
@@ -164,7 +172,7 @@ export default {
           this.dict[req.action], "roomID": this.roomID});
         this.chosenAction = "BS2";
         this.numKill = req.action === "C" && this.gameInfo.myCards.length === 2? 2: 1;
-        this.showKill = true; // for challenge
+        this.checkKill(); // if lose challenge
       }else{ // not the one being challenged so can wait
         this.clearModal();
       }
@@ -174,8 +182,8 @@ export default {
       if(this.username === req.loser){
         this.playSound("LOSER");
         this.chosenAction = "BS1";
-        this.showKill = true; // for challenge
         this.numKill = req.kill > this.gameInfo.myCards.length? this.gameInfo.myCards.length: req.kill;
+        this.checkKill(); // if lose challenge
       }else if(this.username === req.winner){
         this.playSound("WINNER");
       }
@@ -199,8 +207,10 @@ export default {
 
     eventBus.$on("in-game", (res) => {
       this.gameInfo = res.gameInfo;
-      this.gamePopu();
-      this.currentState();
+      this.$nextTick(function () {
+        this.gamePopu();
+        this.currentState();
+      });
     });
 
     eventBus.$on("chosen-card", (req)=>{
@@ -270,7 +280,8 @@ export default {
       eventBus.$emit("game-info",this.gameInfo);
       if(this.chosenAction === "A1"){
         this.chosenAction = "A2";
-        this.showKill = true;
+        this.numKill = 2;
+        this.checkKill();
       }
     },
     clearModal: function(){
@@ -317,9 +328,6 @@ export default {
       axios.put('/api/coup/move', this.body)
       .then(() => {
         socket.emit("getInfo", {"roomID": this.roomID});
-        if(this.chosenAction === "A1"){
-          this.numKill = 2;
-        }
       });
     },
     block: function(){
@@ -347,7 +355,7 @@ export default {
           socket.emit("ok", {"roomID": this.roomID, "player": this.currentAction.fromPlayer, "okPlayer": this.username});
           this.chosenAction = "N";
           this.numKill = 1;
-          this.showKill = true; // for assassin
+          this.checkKill(); // for the assassined
         }else if(this.currentAction.action === "T" && this.username === this.currentAction.toPlayer){ // if oked assassin on theirself
           socket.emit("block",{"roomID": this.roomID});
           socket.emit("ok", {"roomID": this.roomID, "player": this.currentAction.fromPlayer, "okPlayer": this.username});
@@ -366,6 +374,20 @@ export default {
           });
         }
       }
+    },
+    checkKill: function(){
+      if(this.numKill >= this.gameInfo.myCards.length){
+        this.dead = true;
+      }else{
+        this.showKill = true;
+      }
+    },
+    instaKill: function(){
+      for(let i = 0; i < this.gameInfo.myCards.length; i++){
+        this.inKill[i] = true;
+      }
+      this.handleKill();
+      this.dead = false;
     },
     handleKill: function(){
       this.showKill = false;
@@ -425,7 +447,7 @@ export default {
     },
     currentState: function(){ // recovery function
       let checkpoint = this.gameInfo.checkpoint;
-      if(checkpoint.state === "WAIT"){
+      if(checkpoint.state === "ROOM"){
         this.clear();
         return;
       }
@@ -446,7 +468,6 @@ export default {
         this.currentPlayer = false;
         if(checkpoint.loser === this.username){ // challenge
           this.chosenAction = "BS1";
-          this.showKill = true;
           if(checkpoint.loser === checkpoint.fromPlayer){
             this.chosenAction = "BS2";
             this.numKill = checkpoint.blockedAction === "C" && this.gameInfo.myCards.length === 2? 2: 1;
@@ -457,16 +478,18 @@ export default {
           }
         }else if(checkpoint.toPlayer === this.username){ // assassin/coup
           this.chosenAction = checkpoint.action;
-          this.showKill = true;
           this.numKill = 1;
         }else if(checkpoint.player === this.username && checkpoint.action === "A2"){ // ambassador
           this.chosenAction = "A2";
-          this.showKill = true;
           this.numKill = 2;
         }
+        this.checkKill();
       }
     },
     playSound: function(situation){
+      if(!this.funMode){
+        return;
+      }
       var audio;
       if(situation === "INFO"){
         let prob = Math.random();

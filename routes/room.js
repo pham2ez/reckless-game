@@ -15,7 +15,7 @@ router.post('/', (req, res) => {
       error: `Please sign in to create a game room.`,
     }).end();
   }else {
-    const room = Rooms.createRoom(req.session.username, req.body.content);
+    const room = Rooms.createRoom(req.session.username, req.body.name, req.body.password);
     res.status(200).json(room).end();
   }
 });
@@ -33,10 +33,27 @@ router.get('/rooms', (req, res) => {
  * @name POST/api/room/find/:name
  * @param {string} user - user's username
  * @return list of rooms starting with name
- * @throws {400} - if username/password is invalid
  */
 router.get('/find/:name', (req, res) => {
   res.status(200).json(Rooms.findRooms(req.params.name)).end();
+});
+
+
+/**
+ * Check password for a room on Coup.
+ * @name PUT/api/room/password/:id
+ * @return {boolean} - if correct password
+ * @throws {403} - if password is wrong
+ */
+router.put('/password/:id', (req, res) => {
+  let accessed = Rooms.checkPassword(req.params.id, req.body.passwordAttempt);
+  if(accessed){
+    res.status(200).json(Rooms.join(req.params.id, req.session.username)).end();
+  }else{
+    res.status(403).json({
+      error: `Wrong password entered.`,
+    }).end();
+  }
 });
 
 /**

@@ -11,16 +11,21 @@
 
         <!-- Right aligned nav items -->
         <b-navbar-nav class="ml-auto" v-if="signedin" >
-          <b-button v-if="!inRoom" v-b-modal.my-modal>Create a Room</b-button>
+          <b-button v-if="!inRoom" v-b-modal.create-room-modal>Create a Room</b-button>
           <b-nav-item v-if="!inGame" href="#" @click="signOut">Sign Out</b-nav-item>
         </b-navbar-nav>
       </b-collapse>
     </b-navbar>
 
-    <b-modal id="my-modal" title="Create a Room" @ok="createRoom">
-      <input type="text"
-        v-model="roomName"
-        placeholder="Enter a room name"/>
+    <b-modal id="create-room-modal" title="Create a Room" @ok="createRoom">
+      <div class="actions">
+        Room Name: <input type="text"
+          v-model="roomName"
+          placeholder="Please enter a room name"/>
+        Password: <input type="password"
+          v-model="roomPassword"
+          placeholder="Leave empty if no password"/>
+      </div>
     </b-modal>
 
     <div class="home" v-if="signedin && !inRoom">
@@ -56,10 +61,11 @@ export default {
     return { 
       username: null,
       roomName: "",
+      roomPassword: "",
       search: "",
       roomID: null,
       inRoom: false,
-      inGame: false
+      inGame: false,
     };
   },
   computed: {
@@ -79,7 +85,7 @@ export default {
       socket.emit("loggedOut", this.roomID !== null? this.roomID: null); // no more create room updates
     },
     createRoom: function(){
-      axios.post('/api/room', {content: this.roomName})
+      axios.post('/api/room', {name: this.roomName, password: this.roomPassword})
       .then((res) => {
         eventBus.$emit("joined-room",res.data);
         socket.emit('create',res.data);
@@ -98,6 +104,9 @@ export default {
         if(res.data.roomInfo !== undefined){
           this.roomID = res.data.roomInfo.id;
           this.inRoom = true;
+          if(res.data.gameInfo !== undefined && res.data.gameInfo.checkpoint.state !== "ROOM"){
+            this.inGame = true;
+          }
         }
       }else{
         eventBus.$emit("signin-success", {"username": null})
@@ -113,6 +122,11 @@ export default {
     eventBus.$on("left-room", () => {
       this.roomID = null;
       this.inRoom = false;
+      this.inGame = false;
+    });
+
+    eventBus.$on("game-status", (req) => {
+      this.inGame = req.status;
     });
 
     eventBus.$on("signin-success", (res) => {
@@ -123,15 +137,23 @@ export default {
 }
 </script>
 
-<style scoped>
+<style>
 .home{
   display:flex;
   flex-direction:row;
 }
+
 .small{
   flex-grow: 1;
 }
+
 .big{
   flex-grow: 3;
+}
+
+.actions{
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
 }
 </style>
