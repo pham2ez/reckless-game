@@ -87,7 +87,7 @@ import Info from './Info.vue';
 export default {
   name: 'CoupView',
   components: {Card, Info},
-  props: ["username", "players", "roomID"],
+  props: ["username", "players", "roomID", "funMode"],
   data() {
     return {
       chosenAction: null,
@@ -95,7 +95,6 @@ export default {
       currentAction: null,
       blocking: false,
       dead: false,
-      funMode: false,
 
       currentPlayer: false,
 

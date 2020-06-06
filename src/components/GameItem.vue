@@ -8,7 +8,7 @@
       <b-button variant="primary" v-show="players.length < 6 && !inGame" @click="check">Join</b-button>
     </b-card>
 
-    <b-modal v-model="show" :title="'Enter password for room ID ' + roomID" hide-footer @show="resetModal" >
+    <b-modal v-model="showModal" :title="'Enter password for room ID ' + roomID" hide-footer @show="resetModal">
       <b-alert :show="wrongAttempt" dismissible variant="danger">Wrong password entered. Please try again.</b-alert>
         <b-spinner v-show="checking" variant="primary" label="Spinning"></b-spinner>
         <div :show="!checking" class="actions">
@@ -29,7 +29,7 @@ export default {
   props: ["roomName","roomID","players","inGame","existsPassword"],
   data() {
     return {
-      show: false,
+      showModal: false,
       passwordAttempt: "",
       wrongAttempt: false,
       checking: false
@@ -43,7 +43,7 @@ export default {
     },
     check: function(){
       if(this.existsPassword){
-        this.show = !this.show;
+        this.showModal = !this.showModal;
       }else{
         this.join();
       }

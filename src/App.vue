@@ -4,20 +4,21 @@
       <b-navbar-brand href="#">Coup</b-navbar-brand>
 
       <b-collapse id="nav-collapse" is-nav>
-        <b-navbar-nav v-if="signedin && !inRoom" >
-          <b-form-input size="sm" class="mr-sm-2" v-model="search" 
-            v-on:input="changeSearch" placeholder="Search Room..."></b-form-input>
+        <b-navbar-nav class="searchBar" v-if="signedin && !inRoom" >
+          <b-form-input size="sm" class="mr-sm-2" v-model="search"
+            v-on:input="changeSearch" placeholder="Search for Room ID/Name..."></b-form-input>
         </b-navbar-nav>
 
         <!-- Right aligned nav items -->
         <b-navbar-nav class="ml-auto" v-if="signedin" >
           <b-button v-if="!inRoom" v-b-modal.create-room-modal>Create a Room</b-button>
-          <b-nav-item v-if="!inGame" href="#" @click="signOut">Sign Out</b-nav-item>
+          <b-nav-item v-if="!inGame" v-b-modal.settings-modal>Settings</b-nav-item>
+          <b-nav-item v-if="!inGame" @click="signOut">Sign Out</b-nav-item>
         </b-navbar-nav>
       </b-collapse>
     </b-navbar>
 
-    <b-modal id="create-room-modal" title="Create a Room" @ok="createRoom">
+    <b-modal id="create-room-modal" title="Create a Room" @ok="createRoom" @show="resetModal">
       <div class="actions">
         Room Name: <input type="text"
           v-model="roomName"
@@ -28,19 +29,33 @@
       </div>
     </b-modal>
 
+    <b-modal id="settings-modal" title="Coup Settings" hide-footer>
+        <b-form-group label="Fun Mode (turns on sounds)">
+          <div class="actions">
+              <b-form-radio-group
+                v-model="funMode"
+                :options="options"
+                buttons
+                stacked
+              ></b-form-radio-group>
+          </div>
+        </b-form-group>
+    </b-modal>
+
     <div class="home" v-if="signedin && !inRoom">
       <div class="big">
         <GamesList/>
       </div>
-      <div class="small">
+      <!-- <div class="small">
         <FriendsList/>
-      </div>
+      </div> -->
     </div>
 
     <SignUpIn v-if="!signedin"/>
 
     <WaitRoomView v-show="signedin && inRoom"
-      v-bind:username="username"/>
+      v-bind:username="username"
+      v-bind:funMode="funMode"/>
   </div>
 </template>
 
@@ -64,6 +79,11 @@ export default {
       roomPassword: "",
       search: "",
       roomID: null,
+      funMode: false,
+      options: [
+          { text: 'On', value: true },
+          { text: 'Off', value: false }
+        ],
       inRoom: false,
       inGame: false,
     };
@@ -89,11 +109,14 @@ export default {
       .then((res) => {
         eventBus.$emit("joined-room",res.data);
         socket.emit('create',res.data);
-        this.roomName = "";
       })
     },
     changeSearch: function(){
       eventBus.$emit("search",this.search);
+    },
+    resetModal: function(){
+      this.roomName = "";
+      this.roomPassword = "";
     }
   },
   created: function() {
@@ -155,5 +178,9 @@ export default {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+}
+
+.searchBar{
+  width: 50%;
 }
 </style>

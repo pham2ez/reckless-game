@@ -41,7 +41,8 @@
       v-show="inGame && !dead"
       v-bind:username="username"
       v-bind:players="players"
-      v-bind:roomID="roomID"/>
+      v-bind:roomID="roomID"
+      v-bind:funMode="funMode"/>
     </div>
   </div>
 </template>
@@ -56,7 +57,7 @@ import CoupView from './CoupView.vue';
 export default {
   name: 'WaitRoomView',
   components: {Messages,CoupView,Card},
-  props: ["username"],
+  props: ["username","funMode"],
   data() {
     return {
       creator:"",
@@ -71,7 +72,6 @@ export default {
       coinDict: {},
       playerIndex: 0,
       inGame: false,
-      funMode: false,
       winner: "",
       blocking: "",
       
