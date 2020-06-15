@@ -29,6 +29,7 @@
       <b-modal :visible="inGame && winner !== ''" no-close-on-esc no-close-on-backdrop hide-header hide-footer>
         The winner is {{winner.winner}}.
         <br>
+        <br>
         <div class="actions">
           <b-button v-if="creator===username" @click="end">End Game</b-button>
           <p v-else>Please wait for the room creator to end the game.</p>

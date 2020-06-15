@@ -31,10 +31,17 @@
       <!-- The modals -->
         <b-modal :title="'Choose a player to use ' + dict[chosenAction] + ' on'" :visible="showChoose" no-close-on-esc no-close-on-backdrop hide-footer hide-header-close>
           <div class="actions">
-            <b-button v-for="player in players"
-              v-bind:key="player"
-              v-show="player !== username && ((chosenAction === 'T' && gameInfo.coinDict[player] >= 2) || chosenAction === 'N' || chosenAction === 'RECK')"
-              @click="choose(player)">{{player}}</b-button>
+            <div class="actions"
+              v-for="player in players" 
+              v-bind:key="player" id="popover-warning">
+              <b-button
+                v-show="player !== username && (chosenAction === 'T' || chosenAction === 'N' || chosenAction === 'RECK')"
+                :disabled="gameInfo.coinDict[player] < 2"
+                @click="choose(player)">{{player}}</b-button>
+              <b-popover :disabled="gameInfo.coinDict[player] >= 2" target="popover-warning" triggers="hover" placement="right">
+                This player has less than 2 coins.
+              </b-popover>
+            </div>
             <b-button variant="outline-dark" @click="back">Back</b-button>
           </div>
         </b-modal>
@@ -122,7 +129,7 @@ export default {
       inKill: [false,false,false,false],
 
       title: "",
-      dict: {"A1":"Spy", "C":"Rogue", "T":"Pirate", "D":"King", "N":"Samurai", "RECK": "overthrow", "FA": "corrupt income"},
+      dict: {"A1":"Spy", "C":"Rogue", "T":"Pirate", "D":"King", "N":"Samurai", "RECK": "execute", "FA": "corrupt income"},
       gameInfo: null,
       deadCardsArray: [],
       myCardsArray: [],
