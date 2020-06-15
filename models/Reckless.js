@@ -149,10 +149,10 @@ class Reckless {
       if(req.player === game.checkpoint.loser){ // challenge loser chose card
         game.checkpoint.loser = undefined;
         game.checkpoint.completed = game.checkpoint.player === undefined;
-      }else if(req.player === game.checkpoint.player){ // ambassador needs to finish
+      }else if(req.player === game.checkpoint.player){ // spy needs to finish
         game.checkpoint.player = undefined;
         game.checkpoint.completed = game.checkpoint.loser === undefined;
-      }else if(req.player === game.checkpoint.toPlayer){ // assassin/reck
+      }else if(req.player === game.checkpoint.toPlayer){ // samurai/reck
         game.checkpoint.completed = true;
       }
       game.checkpoint.state = game.checkpoint.completed? "WAIT": "KILL";

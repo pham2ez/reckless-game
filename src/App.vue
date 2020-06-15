@@ -1,12 +1,12 @@
 <template>
   <div id="app">
     <b-navbar type="dark" variant="info">
-      <b-navbar-brand href="#">Coup</b-navbar-brand>
+      <b-navbar-brand href="#">Reckless</b-navbar-brand>
 
       <b-collapse id="nav-collapse" is-nav>
         <b-navbar-nav class="searchBar" v-if="signedin && !inRoom" >
           <b-form-input size="sm" class="mr-sm-2" v-model="search"
-            v-on:input="changeSearch" placeholder="Search for Room ID/Name..."></b-form-input>
+            v-on:input="changeSearch" placeholder="Search all games for Room Name/ID #..."></b-form-input>
         </b-navbar-nav>
 
         <!-- Right aligned nav items -->
@@ -29,7 +29,7 @@
       </div>
     </b-modal>
 
-    <b-modal id="settings-modal" title="Coup Settings" hide-footer>
+    <b-modal id="settings-modal" title="Reckless Settings" hide-footer>
         <b-form-group label="Fun Mode (turns on sounds)">
           <div class="actions">
               <b-form-radio-group
@@ -63,14 +63,14 @@
 import axios from "axios";
 import { eventBus, socket } from "./main";
 import SignUpIn from './components/SignUpIn.vue';
-import FriendsList from './components/FriendsList.vue';
+// import FriendsList from './components/FriendsList.vue';
 import GamesList from './components/GamesList.vue';
 import WaitRoomView from './components/WaitRoomView.vue';
 
 export default {
   name: 'app',
   components: {
-    SignUpIn, FriendsList, GamesList, WaitRoomView
+    SignUpIn, GamesList, WaitRoomView
   },
   data() {
     return { 

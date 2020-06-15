@@ -8,7 +8,7 @@
 
 <script>
 export default {
-  name: 'CoupView',
+  name: 'Info',
   props: ["title", "textArray"]
 }
 </script>

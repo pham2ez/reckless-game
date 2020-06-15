@@ -1,13 +1,58 @@
 <template>
   <div class="gamesList">
-    <GameItem
-      v-for="game in gameList"
-      v-bind:key="game.id"
-      v-bind:roomName="game.roomName"
-      v-bind:roomID="game.id"
-      v-bind:players="game.players"
-      v-bind:inGame="game.inGame"
-      v-bind:existsPassword="game.existsPassword"/>
+    <div class="searchResults" v-if="searching">
+      <h1> Search Results </h1>
+      <b-card
+        v-if="searchList.length === 0"
+        title="No rooms with this name/ID #."
+        style="text-align:center;"
+        class="mb-2"/>
+      <GameItem
+        v-for="game in searchList"
+        v-bind:key="game.id"
+        v-bind:roomName="game.roomName"
+        v-bind:roomID="game.id"
+        v-bind:players="game.players"
+        v-bind:inGame="game.inGame"
+        v-bind:existsPassword="game.existsPassword"/>
+    </div>
+    <b-tabs content-class="mt-2" v-else justified>
+      <b-tab title="All Games" active>
+        <b-card
+        v-if="gameList.length === 0"
+        title="No games currently created."
+        style="text-align:center;"
+        class="mb-2"/>
+        <GameItem
+        v-for="game in gameList"
+        v-bind:key="game.id"
+        v-bind:roomName="game.roomName"
+        v-bind:roomID="game.id"
+        v-bind:players="game.players"
+        v-bind:inGame="game.inGame"
+        v-bind:existsPassword="game.existsPassword"/>
+      </b-tab>
+      <b-tab title="Available Games">
+        <b-card
+        v-if="gameList.length === 0"
+        title="No games currently created."
+        style="text-align:center;"
+        class="mb-2"/>
+        <b-card
+        v-if="gameList.length !== 0 && availableList.length === 0"
+        title="All rooms are currently in game."
+        style="text-align:center;"
+        class="mb-2"/>
+        <GameItem
+        v-for="game in availableList"
+        v-bind:key="game.id"
+        v-bind:roomName="game.roomName"
+        v-bind:roomID="game.id"
+        v-bind:players="game.players"
+        v-bind:inGame="game.inGame"
+        v-bind:existsPassword="game.existsPassword"/>
+      </b-tab>
+    </b-tabs>
   </div>
 </template>
 
@@ -23,7 +68,10 @@ export default {
   },
   data() {
     return {
-      gameList: []
+      gameList: [],
+      searchList: [],
+      searching: false,
+      availableList: []
     }
   },
   created: function(){
@@ -44,10 +92,13 @@ export default {
     eventBus.$on("search", (req) => {
       if(req === ""){
         this.getRooms();
+        this.searching = false;
+        this.searchList = [];
       }else{
+        this.searching = true;
         axios.get('/api/room/find/'+req, {})
         .then((res) => {
-          this.gameList = res.data;
+          this.searchList = res.data;
         });
       }
     });
@@ -56,7 +107,8 @@ export default {
     getRooms: function(){ // TODO specific getRoom info
       axios.get('/api/room/rooms', {})
       .then((res) => {
-        this.gameList = res.data;
+        this.gameList = res.data[0];
+        this.availableList = res.data[1];
       });
     }
   }

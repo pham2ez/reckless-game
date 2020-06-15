@@ -4,7 +4,7 @@ const router = express.Router();
 
 const Rooms = require('../models/Rooms');
 /**
- * Create a room on Coup.
+ * Create a room on Reckless.
  * @name POST/api/room
  * @return {Room} - the created room
  * @throws {401} - if user is not signed in
@@ -40,7 +40,7 @@ router.get('/find/:name', (req, res) => {
 
 
 /**
- * Check password for a room on Coup.
+ * Check password for a room on Reckless.
  * @name PUT/api/room/password/:id
  * @return {boolean} - if correct password
  * @throws {403} - if password is wrong
@@ -57,7 +57,7 @@ router.put('/password/:id', (req, res) => {
 });
 
 /**
- * Join a room on Coup.
+ * Join a room on Reckless.
  * @name PUT/api/room/players/:id
  * @return {boolean} - if joined the room or not
  * @throws {400} - if room doesn't exist
@@ -83,7 +83,7 @@ router.put('/players/:id', (req, res) => {
 });
 
 /**
- * Leave a room on Coup.
+ * Leave a room on Reckless.
  * @name DELETE/api/room/players/:id
  * @return {boolean} - if left the room or not
  * @throws {400} - if room doesn't exist

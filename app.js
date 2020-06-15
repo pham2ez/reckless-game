@@ -10,7 +10,7 @@ app.io = require('socket.io')();
 const indexRouter = require('./routes/index')(app.io);
 const userRouter = require('./routes/user');
 const roomRouter = require('./routes/room');
-const coupRouter = require('./routes/coup');
+const reckRouter = require('./routes/reck');
 
 app.use(logger('dev'));
 app.use(session({secret: "test", resave: true, saveUninitialized: true}));
@@ -22,7 +22,7 @@ app.use(express.static(path.join(__dirname, '/dist'))); // Note
 app.use('/', indexRouter);
 app.use('/api/user', userRouter);
 app.use('/api/room', roomRouter);
-app.use('/api/coup', coupRouter);
+app.use('/api/reck', reckRouter);
 app.use(function (req, res, next) {
   res.status(404).send("Sorry this url could not be found.")
 })

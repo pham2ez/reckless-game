@@ -15,7 +15,7 @@
 import { eventBus } from "../main";
 
 export default {
-  name: 'CoupView',
+  name: 'Card',
   props: ["role", "available"],
   data() {
     return {
@@ -25,29 +25,29 @@ export default {
   },
   created: function(){
     if(this.role === "A1"){
-      this.textArray = ["Exchange cards with Court Deck.","Blocks stealing."];
+      this.textArray = ["Pick up 2 roles and choose 2 to keep.","Blocks Threaten action."];
     }else if(this.role === "C"){
-      this.textArray = [ "Blocks assassination."];
+      this.textArray = [ "Blocks Slay action."];
     }else if(this.role === "D"){
-      this.textArray = [ "Take 3 coins from Treasury.","Blocks Foreign Aid."];
+      this.textArray = [ "Take 3 gold pieces from the people.","Blocks Corrupt Income."];
     }else if(this.role === "N"){
-      this.textArray = [ "Pay 3 coins to assassinate another player."];
+      this.textArray = [ "Pay 3 coins to slay another player."];
     }else if (this.role === "T"){
-      this.textArray = [ "Steal 2 coins from another player.","Blocks stealing."];
+      this.textArray = [ "Threaten another player to get their 2 coins.","Blocks Threaten action."];
     }
   },
   computed: {
     title: function(){
       if(this.role === "A1"){
-        return "Ambassador";
+        return "Spy";
       }else if(this.role === "C"){
-        return "Contessa";
+        return "Rogue";
       }else if(this.role === "D"){
-        return "Duke";
+        return "King";
       }else if(this.role === "N"){
-        return "Assassin";
+        return "Samurai";
       }else if (this.role === "T"){
-        return "Captain";
+        return "Pirate";
       }
     },
     style: function(){
@@ -59,15 +59,15 @@ export default {
     },
     img: function(){
       if(this.role === "A1"){
-        return require('./media/Ambassador.jpg');
+        return require('./media/spy.jpg');
       }else if(this.role === "C"){
-        return require('./media/Contessa.jpg');
+        return require('./media/rogue.jpg');
       }else if(this.role === "D"){
-        return require('./media/Duke.jpg');
+        return require('./media/king.jpg');
       }else if(this.role === "N"){
-        return require('./media/Assassin.jpg');
+        return require('./media/samurai.jpg');
       }else if (this.role === "T"){
-        return require('./media/Captain.jpg');
+        return require('./media/pirate.jpg');
       }
     },
     classType: function(){

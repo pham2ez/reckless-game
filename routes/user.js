@@ -4,9 +4,9 @@ const router = express.Router();
 
 const Users = require('../models/Users');
 const Rooms = require('../models/Rooms');
-const Coup = require('../models/Coup');
+const Reckless = require('../models/Reckless');
 /**
- * Create a user on Coup.
+ * Create a user on Reckless.
  * @name POST/api/user/
  * @param {string} username - user's chosen username
  * @param {string} password - user's chosen password
@@ -30,7 +30,7 @@ router.post('/', (req, res) => {
 });
 
 /**
- * Return list of friends on Coup.
+ * Return list of friends on Reckless.
  * @name GET/api/user/friends
  * @return {boolean} - if successfully requested
  * @throws {400} - if already following user
@@ -48,7 +48,7 @@ router.get('/friends/', (req, res) => {
 
 
 /**
- * Request to be friends with a user on Coup.
+ * Request to be friends with a user on Reckless.
  * @name POST/api/user/friend/:user
  * @return {boolean} - if successfully requested
  * @throws {400} - if already following user
@@ -73,7 +73,7 @@ router.post('/request/:user', (req, res) => {
 });
 
 /**
- * Accept friend request from user on Coup.
+ * Accept friend request from user on Reckless.
  * @name PUT/api/user/accept/:user
  * @return {boolean} - if successfully accepted
  * @throws {401} - if user is not signed in
@@ -97,7 +97,7 @@ router.get('/request/', (req, res) => {
 });
 
 /**
- * Reject friend request from user on Coup.
+ * Reject friend request from user on Reckless.
  * @name DELETE/api/user/accept/:user
  * @return {boolean} - if successfully accepted
  * @throws {401} - if user is not signed in
@@ -120,7 +120,7 @@ router.get('/find/:user', (req, res) => {
 });
 
 /**
- * Sign in a user onto Coup.
+ * Sign in a user onto Reckless.
  * @name POST/api/user/signin
  * @param {string} username - user's username
  * @param {string} password - user's password
@@ -155,7 +155,7 @@ router.get('/signedin', (req, res) => {
     let user = Users.findUser(username);
     if(user.roomID !== null){
       let room = Rooms.findRoomID(user.roomID);
-      let game = room.inGame? Coup.truncGame(user.roomID, user.username): undefined;
+      let game = room.inGame? Reckless.truncGame(user.roomID, user.username): undefined;
       res.status(200).json({"username": user.username, "roomInfo": room,
       "gameInfo": game}).end();
     }else{
@@ -165,7 +165,7 @@ router.get('/signedin', (req, res) => {
 });
 
 /**
- * Sign out a user on Coup.
+ * Sign out a user on Reckless.
  * @name DELETE/api/user/signout
  * @return session
  * @throws {401} - if user is not signed in

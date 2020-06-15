@@ -36,8 +36,10 @@
     </div>
 
     <div class="columns">
-      <Messages/>
-      <CoupView 
+      <Messages
+      v-bind:roomID="roomID"
+      v-bind:username="username"/>
+      <RecklessView 
       v-show="inGame && !dead"
       v-bind:username="username"
       v-bind:players="players"
@@ -52,11 +54,11 @@ import axios from "axios";
 import { eventBus,socket } from "../main";
 import Messages from './Messages.vue';
 import Card from './Card.vue';
-import CoupView from './CoupView.vue';
+import RecklessView from './RecklessView.vue';
 
 export default {
   name: 'WaitRoomView',
-  components: {Messages,CoupView,Card},
+  components: {Messages,RecklessView,Card},
   props: ["username","funMode"],
   data() {
     return {
@@ -75,8 +77,7 @@ export default {
       winner: "",
       blocking: "",
       
-      loading: false,
-      dict: {"A1":"Ambassador", "C":"Contessa", "T":"Captain", "D":"Duke", "N":"Assassin"}
+      loading: false
     }
   },
   created: function(){
@@ -128,7 +129,7 @@ export default {
     });
 
     eventBus.$on("game-info", (req) => {
-      this.blocking = null;
+      this.blocking = "";
       this.loading = false;
       this.okedPlayers = [];
       this.deadPlayers = req.deadPlayers;
@@ -154,6 +155,8 @@ export default {
   methods: {
     clear: function(){
       this.dead= false;
+      this.blocking = "";
+      this.okedPlayers = [];
       this.deadPlayers= [];
       this.numCards= {};
       this.coinDict= {};

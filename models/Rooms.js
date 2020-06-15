@@ -1,7 +1,8 @@
 let data = [];
+let availableGames = [];
 let passwords = {};
 let roomCounter = 0;
-let Coup = require('./Coup.js');
+let Reckless = require('./Reckless.js');
 let Users = require('./Users.js');
 /**
  * @typedef Rooms
@@ -22,6 +23,7 @@ class Rooms {
     Users.addToRoom(creator, roomCounter.toString());
     roomCounter++;
     data.push(room);
+    availableGames.push(room);
     return room;
   }
 
@@ -30,7 +32,7 @@ class Rooms {
   }
 
   static allRooms() {
-    return data;
+    return [data,availableGames];
   }
 
   static findRoomID(ID) {
@@ -62,16 +64,18 @@ class Rooms {
     return room;
   }
 
-  static startGame(ID, username){
+  static startGame(ID){
     let room = this.findRoomID(ID);
     room.inGame = true;
-    Coup.startGame(ID, room.players);
+    availableGames = availableGames.filter(game => game.id !== ID);
+    Reckless.startGame(ID, room.players);
   }
 
   static endGame(ID){
     let room = this.findRoomID(ID);
     room.inGame = false;
-    Coup.endGame(ID);
+    availableGames.push(room);
+    Reckless.endGame(ID);
   }
 }
 

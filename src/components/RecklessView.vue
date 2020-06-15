@@ -1,20 +1,20 @@
 <template>
-  <div class="coup">
+  <div class="reck">
     <div class="cards" v-if="gameInfo !== null">
       <b-button variant="outline-dark" v-b-modal="'info'" @click="playSound('INFO')">Game Info</b-button>
       <Info title="My Cards" :textArray="myCardsArray"/>
       <Info title="Dead Cards" :textArray="deadCardsArray"/>
       <!-- The modal -->
-      <b-modal id="info" size="lg" title="Coup Actions" hide-footer>
-        <b-img :src="require('./media/rules.jpg')" fluid-grow></b-img>
+      <b-modal id="info" size="lg" title="Game Info" hide-footer>
+        <b-table striped hover :items="items"></b-table>
       </b-modal>
     </div>
     <div class="actions" v-show="currentPlayer && chosenAction === null">
-      <b-button v-show="!coup" @click="income">Income</b-button>
-      <b-button v-show="!coup" @click="foreignAid">Foreign Aid</b-button>
-      <b-button v-show="(available || coup)" @click="coupClick">Coup</b-button>
+      <b-button v-show="!reck" @click="income">Steady Income</b-button>
+      <b-button v-show="!reck" @click="corruptIncome">Corrupt Income</b-button>
+      <b-button v-show="(available || reck)" @click="reckClick">Execute</b-button>
     </div>
-    <div class="cards" v-show="currentPlayer && !coup">
+    <div class="cards" v-show="currentPlayer && !reck">
       <!-- only on their turn -->
       <Card v-bind:role="'D'"
         v-bind:available="chosenAction === null"/>
@@ -33,7 +33,7 @@
           <div class="actions">
             <b-button v-for="player in players"
               v-bind:key="player"
-              v-show="player !== username && ((chosenAction === 'T' && gameInfo.coinDict[player] >= 2) || chosenAction === 'N' || chosenAction === 'COUP')"
+              v-show="player !== username && ((chosenAction === 'T' && gameInfo.coinDict[player] >= 2) || chosenAction === 'N' || chosenAction === 'RECK')"
               @click="choose(player)">{{player}}</b-button>
             <b-button variant="outline-dark" @click="back">Back</b-button>
           </div>
@@ -41,10 +41,10 @@
 
         <b-modal :title="'Choose which card to block with'" :visible="showChooseBlock" no-close-on-esc no-close-on-backdrop hide-footer hide-header-close>
           <div class="actions">
-            <b-button  v-show="chosenAction === 'FA'" @click="chooseBlock('D')">Duke</b-button>
-            <b-button v-show="chosenAction === 'T'" @click="chooseBlock('A1')">Ambassador</b-button>
-            <b-button v-show="chosenAction === 'T'" @click="chooseBlock('T')">Captain</b-button>
-            <b-button v-show="chosenAction === 'N'" @click="chooseBlock('C')">Contessa</b-button>
+            <b-button  v-show="chosenAction === 'FA'" @click="chooseBlock('D')">King</b-button>
+            <b-button v-show="chosenAction === 'T'" @click="chooseBlock('A1')">Spy</b-button>
+            <b-button v-show="chosenAction === 'T'" @click="chooseBlock('T')">Pirate</b-button>
+            <b-button v-show="chosenAction === 'N'" @click="chooseBlock('C')">Rogue</b-button>
           </div>
         </b-modal>
 
@@ -85,11 +85,22 @@ import Card from './Card.vue';
 import Info from './Info.vue';
 
 export default {
-  name: 'CoupView',
+  name: 'RecklessView',
   components: {Card, Info},
   props: ["username", "players", "roomID", "funMode"],
   data() {
     return {
+      items: [
+        { character: "Anyone", action_name: 'Steady Income', effect: 'Gain 1 gold piece.', can_block: "-"},
+        { character: "Anyone", action_name: 'Corrupt Income', effect: 'Gain 2 gold pieces.', can_block: "-"  },
+        { character: "Anyone", action_name: 'Overthrow', effect: 'Player of your choice will have to have one of their people executed.', can_block: "-"  },
+        { character: "King", action_name: 'Tax', effect: 'Gain 3 gold pieces.', can_block: "Corrupt Income. You are the only one that can be corrupt in this kingdom.", _rowVariant: "primary"  },
+        { character: "Pirate", action_name: 'Threaten', effect: 'Gain 2 gold pieces from a player of your choice.', can_block: "Threaten. Feels unthreatened by other pirates.", _rowVariant: "success"  },
+        { character: "Rogue", action_name: '-', effect: '-', can_block: "Slay. Would never let themselves be slain by a mere samurai.", _rowVariant: "warning"  },
+        { character: "Samurai", action_name: 'Slay', effect: 'Player or your choice will be slain by your hands.', can_block: "-", _rowVariant: "danger"  },
+        { character: "Spy", action_name: 'Impersonate', effect: 'Pick up 2 roles and choose 2 to keep.', can_block: "Threaten. Ability to impersonate anyone throws off those darn pirates.", _rowVariant: "info"  }
+      ],
+
       chosenAction: null,
       chosenPlayer: null,
       currentAction: null,
@@ -105,13 +116,13 @@ export default {
 
       myCoins: 0,
       available: false,
-      coup: false,
+      reck: false,
       oks: 0,
       numKill: 0,
       inKill: [false,false,false,false],
 
       title: "",
-      dict: {"A1":"Ambassador", "C":"Contessa", "T":"Captain", "D":"Duke", "N":"Assassin", "COUP": "coup", "FA": "foreign aid"},
+      dict: {"A1":"Spy", "C":"Rogue", "T":"Pirate", "D":"King", "N":"Samurai", "RECK": "overthrow", "FA": "corrupt income"},
       gameInfo: null,
       deadCardsArray: [],
       myCardsArray: [],
@@ -120,7 +131,7 @@ export default {
   created: function(){
     socket.on("getInfo", () => {
       
-      axios.get('/api/coup/info/' + this.roomID, this.body)
+      axios.get('/api/reck/info/' + this.roomID, this.body)
       .then((res) => {
         if(res.data.checkpoint.completed && this.chosenAction !== "A1"){
           this.clear();
@@ -141,8 +152,8 @@ export default {
       }else{
         this.playSound("MOVE");
       }
-      if(data.toPlayer === this.username && data.action === "COUP"){
-        this.chosenAction = "COUP";
+      if(data.toPlayer === this.username && data.action === "RECK"){
+        this.chosenAction = "RECK";
         this.numKill = 1;
         this.checkKill();
         return;
@@ -155,7 +166,7 @@ export default {
     socket.on("challenge",(req)=>{
       if(this.username === req.toPlayer && this.gameInfo.myCards.includes(req.action)){
         this.playSound("WINNER");
-        axios.put('/api/coup/update/'+this.roomID, {"state": "CHALLENGE", "player": req.fromPlayer});
+        axios.put('/api/reck/update/'+this.roomID, {"state": "CHALLENGE", "player": req.fromPlayer});
         let kill = this.chosenAction === "N"? 2: 1;
         socket.emit("challengeResults",{"roomID": this.roomID, "loser": req.fromPlayer, "kill": kill});
         eventBus.$emit("add-message",{"message": this.username + " did have " + 
@@ -165,7 +176,7 @@ export default {
         }
       }else if(this.username === req.toPlayer && !this.gameInfo.myCards.includes(req.action)){
         this.playSound("LOSER");
-        axios.put('/api/coup/update/'+this.roomID, {"state": "CHALLENGE", "player": req.toPlayer});
+        axios.put('/api/reck/update/'+this.roomID, {"state": "CHALLENGE", "player": req.toPlayer});
         socket.emit("challengeResults",{"roomID": this.roomID, "winner": req.fromPlayer});
         eventBus.$emit("add-message",{"message": this.username + " did not have " + 
           this.dict[req.action], "roomID": this.roomID});
@@ -196,9 +207,9 @@ export default {
       if(this.username === req.player){
         this.oks++;
         if((this.chosenAction === "T" || this.chosenAction === "N") && req.okPlayer === this.chosenPlayer){
-          this.finish();
+          if(this.chosenAction === "T") {this.finish();}
         }else if(this.oks === (this.players.length-1 - this.gameInfo.deadPlayers.length)){
-          eventBus.$emit("add-message", {"message": "Action successfully went through", "roomID": this.roomID});
+          eventBus.$emit("add-message", {"message": "Action successfully went through", "color":"#008f11", "roomID": this.roomID});
           this.finish();
         }
       }
@@ -216,7 +227,7 @@ export default {
       this.currentPlayer = false;
       this.chosenAction = req;
       if(this.blocking){
-        axios.put('/api/coup/update/'+this.roomID, {"state": "BLOCK", "action": req, "player": this.username});
+        axios.put('/api/reck/update/'+this.roomID, {"state": "BLOCK", "action": req, "player": this.username});
         eventBus.$emit("add-message",{"message": this.username + " blocks with " + this.dict[this.chosenAction], "roomID": this.roomID});
         this.currentAction = {"roomID": this.roomID, "action": this.chosenAction, "blockedAction": this.currentAction.action,
           "fromPlayer": this.username, "toPlayer": this.currentAction.fromPlayer};
@@ -224,8 +235,8 @@ export default {
       }else if(req === "N" || req === "T"){
         this.showChoose = true;
       }else{
-        axios.put('/api/coup/update/'+this.roomID, {"state": "MOVE", "action": req, "player": this.username});
-        eventBus.$emit("add-message",{"message": this.username + " chose " + this.dict[req], "roomID": this.roomID});
+        axios.put('/api/reck/update/'+this.roomID, {"state": "MOVE", "action": req, "player": this.username});
+        eventBus.$emit("add-message",{"message": this.username + " chose " + this.dict[req], "color":"#2a9df4", "roomID": this.roomID});
         this.currentAction = {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username};
         socket.emit("action", this.currentAction);
       }
@@ -268,13 +279,13 @@ export default {
       this.myCoins = this.gameInfo.coinDict[this.username];
       if(this.myCoins < 7){
         this.available = false;
-        this.coup = false;
+        this.reck = false;
       }else if(this.myCoins >= 10){
         this.available = true;
-        this.coup = true;
+        this.reck = true;
       }else{
         this.available = true;
-        this.coup = false;
+        this.reck = false;
       }
       eventBus.$emit("game-info",this.gameInfo);
       if(this.chosenAction === "A1"){
@@ -294,26 +305,26 @@ export default {
     income: function(){
       this.chosenAction = "IN";
       this.finish();
-      eventBus.$emit("add-message",{"message": this.username + " chose income", "roomID": this.roomID});
+      eventBus.$emit("add-message",{"message": this.username + " chose steady income", "color":"#2a9df4", "roomID": this.roomID});
     },
-    foreignAid: function(){
+    corruptIncome: function(){
       this.chosenAction = "FA";
       this.currentPlayer = false;
-      eventBus.$emit("add-message",{"message": this.username + " chose foreign aid", "roomID": this.roomID});
+      eventBus.$emit("add-message",{"message": this.username + " chose corrupt income", "color":"#2a9df4", "roomID": this.roomID});
       this.currentAction = {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username};
       socket.emit("action", this.currentAction);
     },
-    coupClick: function(){
+    reckClick: function(){
       this.showChoose = true;
-      this.chosenAction = "COUP";
+      this.chosenAction = "RECK";
     },
     choose: function(player){
       this.chosenPlayer = player;
       this.showChoose = false;
       eventBus.$emit("add-message",{"message": this.username + " picked " + player + " to use "
-       + this.dict[this.chosenAction] + " on", "roomID": this.roomID});
+       + this.dict[this.chosenAction] + " on", "color":"#2a9df4", "roomID": this.roomID});
        this.currentAction = {"roomID": this.roomID, "action": this.chosenAction, "fromPlayer": this.username, "toPlayer": player};
-      axios.put('/api/coup/update/'+this.roomID, {"state": "MOVE", "action": this.chosenAction, "player": this.username, "toPlayer": player});
+      axios.put('/api/reck/update/'+this.roomID, {"state": "MOVE", "action": this.chosenAction, "player": this.username, "toPlayer": player});
       socket.emit("action", this.currentAction);
     },
     chooseBlock: function(role){
@@ -321,10 +332,10 @@ export default {
       eventBus.$emit("chosen-card",role);
     },
     finish: function(){
-      axios.put('/api/coup/update/'+this.roomID, {"state": "FINISH"});
+      axios.put('/api/reck/update/'+this.roomID, {"state": "FINISH"});
       this.body = {"id": this.roomID, "player1": this.username, "player2": this.chosenPlayer,
         "action":this.chosenAction, "cards":[]}
-      axios.put('/api/coup/move', this.body)
+      axios.put('/api/reck/move', this.body)
       .then(() => {
         socket.emit("getInfo", {"roomID": this.roomID});
       });
@@ -335,7 +346,7 @@ export default {
       this.showChooseBlock = true;
       this.chosenAction = this.currentAction.action;
       socket.emit("block",{"roomID": this.roomID, "player": this.username});
-      eventBus.$emit("add-message", {"message": this.username + " is blocking", "roomID": this.roomID});
+      eventBus.$emit("add-message", {"message": this.username + " is blocking", "color":"#d3d3d3", "roomID": this.roomID});
     },
     challenge: function(){
       this.clearModal();
@@ -346,28 +357,28 @@ export default {
     },
     handleOk: function(){
       this.clearModal();
-      axios.put('/api/coup/update/'+this.roomID, {"state": "CHOOSE", "player": this.username});
+      axios.put('/api/reck/update/'+this.roomID, {"state": "CHOOSE", "player": this.username});
       if(this.currentAction.blockedAction === undefined){ // allow move
-        eventBus.$emit("add-message", {"message": this.username + " did nothing", "roomID": this.roomID}); // if original player
-        if(this.currentAction.action === "N" && this.username === this.currentAction.toPlayer){ // if oked assassin on theirself
+        eventBus.$emit("add-message", {"message": this.username + " did nothing", "color":"#d3d3d3",  "roomID": this.roomID}); // if original player
+        if(this.currentAction.action === "N" && this.username === this.currentAction.toPlayer){ // if oked slay on theirself
           socket.emit("block",{"roomID": this.roomID});
           socket.emit("ok", {"roomID": this.roomID, "player": this.currentAction.fromPlayer, "okPlayer": this.username});
           this.chosenAction = "N";
           this.numKill = 1;
-          this.checkKill(); // for the assassined
-        }else if(this.currentAction.action === "T" && this.username === this.currentAction.toPlayer){ // if oked assassin on theirself
+          this.checkKill(); // for the slain
+        }else if(this.currentAction.action === "T" && this.username === this.currentAction.toPlayer){ // if oked slay on theirself
           socket.emit("block",{"roomID": this.roomID});
           socket.emit("ok", {"roomID": this.roomID, "player": this.currentAction.fromPlayer, "okPlayer": this.username});
         }else{
           socket.emit("ok", {"roomID": this.roomID, "player": this.currentAction.fromPlayer, "okPlayer": this.username});
         }
       }else{ // allow block
-        eventBus.$emit("add-message", {"message": "Action was successfully blocked", "roomID": this.roomID});
-        if(this.chosenAction === "N"){ // wasted 3 coins to try to assassin
+        eventBus.$emit("add-message", {"message": "Action was successfully blocked", "color":"#008f11", "roomID": this.roomID});
+        if(this.chosenAction === "N"){ // wasted 3 coins to try to slay another player
           this.finish();
         }else{
-          axios.put('/api/coup/update/'+this.roomID, {"state": "FINISH"});
-          axios.get('/api/coup/next/'+this.roomID)
+          axios.put('/api/reck/update/'+this.roomID, {"state": "FINISH"});
+          axios.get('/api/reck/next/'+this.roomID)
           .then(() => {
             socket.emit("getInfo", {"roomID": this.roomID});
           });
@@ -382,6 +393,7 @@ export default {
       }
     },
     instaKill: function(){
+      eventBus.$emit("add-message", {"message": this.username + " has been overthrown", "color":"#f42a38", "roomID": this.roomID});
       for(let i = 0; i < this.gameInfo.myCards.length; i++){
         this.inKill[i] = true;
       }
@@ -391,7 +403,7 @@ export default {
     handleKill: function(){
       this.showKill = false;
       let chosenCards = [];
-      let str = this.username + " chose to kill ";
+      let str = this.username + " chose to execute ";
       for(let i = 0; i < this.inKill.length; i++){
         if(this.inKill[i]){
           chosenCards.push(this.gameInfo.myCards[i]);
@@ -404,19 +416,19 @@ export default {
         body.player1 = this.username;
       }else{
         this.playSound("CARD");
-        eventBus.$emit("add-message", {"message": str + "to die", "roomID": this.roomID});
+        eventBus.$emit("add-message", {"message": str, "color":"#f4812a", "roomID": this.roomID});
         body.player1 = this.currentAction.fromPlayer;
         body.player2 = this.username;
       }
 
-      axios.put('/api/coup/move', body)
+      axios.put('/api/reck/move', body)
       .then((req) => {
         this.clear();
         if(req.data !== false){
           socket.emit("winner",{"roomID": this.roomID, "winner": req.data});
-          eventBus.$emit("add-message", {"message": req.data + " won the game!", "roomID": this.roomID});
+          eventBus.$emit("add-message", {"message": req.data + " won the game!", "color":"#9700f6", "roomID": this.roomID});
         }else{
-          axios.put('/api/coup/update/'+this.roomID, {"state": "KILL", "player": this.username})
+          axios.put('/api/reck/update/'+this.roomID, {"state": "KILL", "player": this.username})
           .then(()=>{
             socket.emit("getInfo", {"roomID": this.roomID});
           })
@@ -475,10 +487,10 @@ export default {
           }else{
             this.numKill = 1;
           }
-        }else if(checkpoint.toPlayer === this.username){ // assassin/coup
+        }else if(checkpoint.toPlayer === this.username){ // samurai/reck
           this.chosenAction = checkpoint.action;
           this.numKill = 1;
-        }else if(checkpoint.player === this.username && checkpoint.action === "A2"){ // ambassador
+        }else if(checkpoint.player === this.username && checkpoint.action === "A2"){ // spy
           this.chosenAction = "A2";
           this.numKill = 2;
         }
@@ -540,7 +552,7 @@ export default {
 </script>
 
 <style scoped>
-.coup{
+.reck{
   display: flex;
   width:70%;
   flex-direction: column;
