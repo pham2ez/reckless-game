@@ -31,9 +31,9 @@ export default {
     }else if(this.role === "D"){
       this.textArray = [ "Take 3 gold pieces from the people.","Blocks Corrupt Income."];
     }else if(this.role === "N"){
-      this.textArray = [ "Pay 3 coins to slay another player."];
+      this.textArray = [ "Pay 3 gold pieces to slay another player."];
     }else if (this.role === "T"){
-      this.textArray = [ "Threaten another player to get their 2 coins.","Blocks Threaten action."];
+      this.textArray = [ "Threaten another player to get their 2 gold pieces.","Blocks Threaten action."];
     }
   },
   computed: {

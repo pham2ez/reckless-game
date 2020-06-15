@@ -31,6 +31,7 @@
         <br>
         <div class="actions">
           <b-button v-if="creator===username" @click="end">End Game</b-button>
+          <p v-else>Please wait for the room creator to end the game.</p>
         </div>
       </b-modal>
     </div>
@@ -165,7 +166,7 @@ export default {
     },
     playerText: function(player){
       if(this.inGame && !this.deadPlayers.includes(player)){
-        return "Coins: " + this.coinDict[player] + ", Cards in Hand: " + this.numCards[player];
+        return "Gold Pieces: " + this.coinDict[player] + ", Cards in Hand: " + this.numCards[player];
       }else if(this.inGame && this.deadPlayers.includes(player)){
         return "Dead";
       }else{

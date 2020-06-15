@@ -148,7 +148,7 @@ class Reckless {
     }else if(req.state === "KILL"){
       if(req.player === game.checkpoint.loser){ // challenge loser chose card
         game.checkpoint.loser = undefined;
-        game.checkpoint.completed = game.checkpoint.player === undefined;
+        game.checkpoint.completed = game.checkpoint.loser === undefined;
       }else if(req.player === game.checkpoint.player){ // spy needs to finish
         game.checkpoint.player = undefined;
         game.checkpoint.completed = game.checkpoint.loser === undefined;
