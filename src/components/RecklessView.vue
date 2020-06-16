@@ -36,9 +36,9 @@
               v-bind:key="player" id="popover-warning">
               <b-button
                 v-show="player !== username && (chosenAction === 'T' || chosenAction === 'N' || chosenAction === 'RECK')"
-                :disabled="gameInfo.coinDict[player] < 2"
-                @click="choose(player)">{{player}}</b-button>
-              <b-popover :disabled="gameInfo.coinDict[player] >= 2" target="popover-warning" triggers="hover" placement="right">
+                :disabled="chosenAction === 'T' && gameInfo.coinDict[player] < 2"
+                @click="choose(player)">{{player}} {{chosenAction}} {{gameInfo.coinDict[player]}}</b-button>
+              <b-popover :disabled="chosenAction !== 'T' || (chosenAction === 'T' && gameInfo.coinDict[player] >= 2)" target="popover-warning" triggers="hover" placement="right">
                 This player has less than 2 coins.
               </b-popover>
             </div>
@@ -384,6 +384,7 @@ export default {
         if(this.chosenAction === "N"){ // wasted 3 coins to try to slay another player
           this.finish();
         }else{
+          socket.emit("ended", {"roomID": this.roomID});
           axios.put('/api/reck/update/'+this.roomID, {"state": "FINISH"});
           axios.get('/api/reck/next/'+this.roomID)
           .then(() => {
