@@ -37,7 +37,7 @@
               <b-button
                 v-show="player !== username && (chosenAction === 'T' || chosenAction === 'N' || chosenAction === 'RECK')"
                 :disabled="chosenAction === 'T' && gameInfo.coinDict[player] < 2"
-                @click="choose(player)">{{player}} {{chosenAction}} {{gameInfo.coinDict[player]}}</b-button>
+                @click="choose(player)">{{player}}</b-button>
               <b-popover :disabled="chosenAction !== 'T' || (chosenAction === 'T' && gameInfo.coinDict[player] >= 2)" target="popover-warning" triggers="hover" placement="right">
                 This player has less than 2 coins.
               </b-popover>
