@@ -63,9 +63,6 @@ export default {
       this.getRequests();
     });
   },
-  computed: {
-    
-  },
   methods: {
     getFriends: function(){
       this.search = "";
